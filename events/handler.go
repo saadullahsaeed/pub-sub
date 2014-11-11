@@ -47,9 +47,7 @@ func (t *topic) NewPublisher() Publisher {
     return publisher
 }
 func (t *topic) NewSubscriber(subscriber Subscriber) {
-    go func() {
-        t.newSubscribers<-subscriber
-    }()
+    t.newSubscribers<-subscriber
 }
 func (t *topic) String() string {
     return t.name
@@ -62,6 +60,10 @@ func (t *topic) Close() error {
 
 func (t *topic) run() {
     go func() {
+        //note: line below is to make sure that subscribing occurs before ANY event publishing.
+        if len(t.subscribers) == 0 {
+            t.subscribers = append(t.subscribers, <-t.newSubscribers)
+        }
         for ;; {
             select {
             case newSubscriber:=<-t.newSubscribers:

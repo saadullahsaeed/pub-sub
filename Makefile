@@ -3,7 +3,7 @@ WORKDIR_LNK := $(WORKDIR)/src
 EXTERNAL_DEPENDENCIES := github.com/tholowka/testing/assertions
 EXTERNAL_DEPENDENCY_DIRS := $(addprefix $(CURDIR)/, $(EXTERNAL_DEPENDENCIES))
 
-PACKAGES := events
+PACKAGES := events joiner
 
 .PHONY: a-quick-build a-unit-test-check
 
@@ -39,6 +39,6 @@ a-unit-test-check: available
 
 a-build: available
 	@echo 'Running a build (linking)'
-	@export GOPATH=$(WORKDIR) && go install $(PACKAGES)
+	@export GOPATH=$(WORKDIR) && go clean $(PACKAGES) && go install $(PACKAGES)
 	@echo 'Finished a build (linking)'
 	@echo 'Linking ended.'
