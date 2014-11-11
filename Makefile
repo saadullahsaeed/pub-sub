@@ -3,7 +3,7 @@ WORKDIR_LNK := $(WORKDIR)/src
 EXTERNAL_DEPENDENCIES := github.com/tholowka/testing/assertions
 EXTERNAL_DEPENDENCY_DIRS := $(addprefix $(CURDIR)/, $(EXTERNAL_DEPENDENCIES))
 
-PACKAGES := handlers
+PACKAGES := events
 
 .PHONY: a-quick-build a-unit-test-check
 
@@ -24,7 +24,7 @@ $(EXTERNAL_DEPENDENCY_DIRS):
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
 documentation:
-	@export GOPATH=$(WORKDIR) && godoc handlers
+	@export GOPATH=$(WORKDIR) && godoc $(PACKAGES)
 
 a-quick-build: available
 	@echo 'Running a quick build'
