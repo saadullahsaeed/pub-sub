@@ -3,6 +3,9 @@ See http://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern for a descrip
 */
 package events
 
+import (
+    "io"
+)
 /*
 The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. 
 Publishers can be created by any Topic instance. 
@@ -15,6 +18,7 @@ type Subscriber func(interface{})
 /*
 A typical Topic used in a Pub-Sub pattern. The Topic has a name, which in theory should identify it uniquely among other topics. 
 The implementation does not use this name, unless for informative reasons. Topics can create Publishers and Subscribers.  
+Topics can be closed -- this closes the Topic permanently.
 */
 type Topic interface {
     //Allows you to create a new Publisher for a Topic. 
@@ -23,6 +27,7 @@ type Topic interface {
     NewSubscriber(subscriber Subscriber)
     //Returns the topic's name
     String() string
+    io.Closer
 }
 
 // ######## Implementations below ###########
@@ -48,6 +53,11 @@ func (t *topic) NewSubscriber(subscriber Subscriber) {
 }
 func (t *topic) String() string {
     return t.name
+}
+func (t *topic) Close() error {
+    close(t.newSubscribers)
+    close(t.events)
+    return nil
 }
 
 func (t *topic) run() {
