@@ -1,7 +1,7 @@
 /*
 See http://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern for a description of the Publish-Subscribe pattern.
 */
-package handlers
+package events
 
 /*
 The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. 
