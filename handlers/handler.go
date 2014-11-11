@@ -37,9 +37,7 @@ type topic struct {
 
 func (t *topic) NewPublisher() Publisher {
     publisher := func(event interface{}) {
-        go func() {
-            t.events<- event
-        }()
+        t.events<- event
     }
     return publisher
 }
