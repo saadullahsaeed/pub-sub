@@ -21,3 +21,36 @@ use this field, if only for informative reasons. Topics allow you to create Publ
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framwork does not place any assumptions about type. 
 
+### Simple of using Publisher and Subscriber
+```go
+import (
+    "github.com/tholowka/pub-sub/events"
+    "log"
+)
+
+topic := events.NewTopic("my-new-topic")
+publisher := topic.NewPublisher()
+subscriber := func(event interface{}) {
+   log.Println(event) 
+}
+topic.NewSubscriber(subscriber)
+
+publisher("Inform about an event")
+```
+
+### Simple usage of the AwaitAll() functions (a Joiner pattern on an array of Topics)
+import (
+    "github.com/tholowka/pub-sub/joiner"
+    "github.com/tholowka/pub-sub/events"
+    "log"
+)
+
+firstTopic := events.NewTopic("my-new-topic")
+secondTopic := events.NewTopic("my-latest-topic")
+publisher := topic.NewPublisher()
+subscriber := func(event interface{}) {
+   log.Println(event) 
+}
+topic.NewSubscriber(subscriber)
+
+publisher("Inform about an event")

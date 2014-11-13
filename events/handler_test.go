@@ -61,3 +61,4 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
     secondResult := <-channel
     assert.AreEqual([]string { firstResult, secondResult}, []string{ "one", "two"})
 }
+
