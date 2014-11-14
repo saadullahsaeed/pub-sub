@@ -1,9 +1,8 @@
-package joiner
+package events
 
 import (
     "testing"
     "github.com/tholowka/testing/assertions"
-    . "events"
     "time"
 )
 

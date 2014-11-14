@@ -1,9 +1,10 @@
 WORKDIR := $(CURDIR)/.workdir
 WORKDIR_LNK := $(WORKDIR)/src
-EXTERNAL_DEPENDENCIES := github.com/tholowka/testing/assertions
+GIT := github.com
+EXTERNAL_DEPENDENCIES := $(GIT)/tholowka/testing/assertions
 EXTERNAL_DEPENDENCY_DIRS := $(addprefix $(CURDIR)/, $(EXTERNAL_DEPENDENCIES))
 
-PACKAGES := events joiner
+PACKAGES := events
 
 .PHONY: a-quick-build a-unit-test-check
 
@@ -21,8 +22,14 @@ $(WORKDIR_LNK):
 $(EXTERNAL_DEPENDENCY_DIRS):
 	@export GOPATH=$(WORKDIR) && go get $(EXTERNAL_DEPENDENCIES)
 
+
+
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
+clean:
+	@rm -rf $(GIT)
+	@rm -rf $(WORKDIR)/*.*
+
 documentation:
 	@export GOPATH=$(WORKDIR) && godoc $(PACKAGES)
 

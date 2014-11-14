@@ -7,8 +7,7 @@ import (
     "io"
 )
 /*
-The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. 
-Publishers can be created by any Topic instance. 
+The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event.kkPublishers can be created by any Topic instance. 
 */
 type Publisher func(interface{})
 /*

@@ -1,7 +1,6 @@
-package joiner
+package events
 
 import (
-    "events"
     "time"
 )
 
@@ -9,16 +8,16 @@ import (
 type NamedEvents map[string]interface{}
 
 /* Allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. Do note, that due to the architecture, the function may wait indefinitely, if one of the Topics does not have a Publish.*/
-func AwaitAll(pendingEvents []events.Topic, waitFor time.Duration) <-chan NamedEvents {
+func AwaitAll(pendingEvents []Topic, waitFor time.Duration) <-chan NamedEvents {
     return await(pendingEvents, waitFor, false)
 }
 
 /* Allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. Do note, the function may panic after the specified Duration if it events have not appeared in all provided Topics. */
-func MustAwaitAll(pendingEvents []events.Topic, waitFor time.Duration) <-chan NamedEvents {
+func MustAwaitAll(pendingEvents []Topic, waitFor time.Duration) <-chan NamedEvents {
     return await(pendingEvents, waitFor, true)
 }
 
-func await(pendingEvents []events.Topic, waitFor time.Duration, panicOnTimeout bool) <-chan NamedEvents {
+func await(pendingEvents []Topic, waitFor time.Duration, panicOnTimeout bool) <-chan NamedEvents {
     events := map[string]interface{} {}
     pending := make(chan NamedEvents)
     releaser := make(chan NamedEvents)
