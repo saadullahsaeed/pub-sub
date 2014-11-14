@@ -2,6 +2,7 @@ package events
 
 import (
     "time"
+    "fmt"
 )
 
 /* A shorthand for a map of events, each parameterised by a key */
@@ -27,6 +28,9 @@ func await(pendingEvents []Topic, waitFor time.Duration, panicOnTimeout bool) <-
         }
     }
     for _, topic := range pendingEvents {
+        if topic == nil {
+            panic(fmt.Sprintf("No topic provided. Array has empty fields: %v "+ topic))
+        }
         topic.NewSubscriber(newSubscriber(topic.String()))
     }
     go func() {
