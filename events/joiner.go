@@ -46,7 +46,13 @@ func await(pendingEvents []Topic, waitFor time.Duration, panicOnTimeout bool) <-
                 }
             case <-time.After(waitFor):
                 if (panicOnTimeout) {
-                    panic("Some expected events have not been published in the expected timeframe")
+                    notFound := []string {}
+                    for _, value := range pendingEvents {
+                        if _, exists := events[value.String()]; !exists {
+                            notFound = append(notFound, value.String())
+                        }
+                    }
+                    panic(fmt.Sprintf("Some expected events have not been published in the expected timeframe: %v", notFound))
                 }
                 return
             }
