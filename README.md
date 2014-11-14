@@ -39,8 +39,8 @@ publisher("Inform about an event")
 ```
 
 ### Simple usage of the AwaitAll() functions (a Joiner pattern on an array of Topics)
+```go
 import (
-    "github.com/tholowka/pub-sub/joiner"
     "github.com/tholowka/pub-sub/events"
     "log"
 )
@@ -54,3 +54,6 @@ subscriber := func(event interface{}) {
 topic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
+awaitForResult := AwaitAll([]Topic { firstTopic, secondTopic}, time.Duration(10)*time.Second)
+result := <-awaitForResult
+```
