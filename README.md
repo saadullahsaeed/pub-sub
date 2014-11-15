@@ -201,6 +201,9 @@ The _panic's_ message will alert you which Topics have not been Published in the
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
 Some minor notes:
++ Somewhere in your code you should create a _Configuration_ instance, before it is passed to _Wire_, so that it is initialised with all possible topics. Otherwise, _Get_ calls will return 
+<nil>s and your stack won't work. This has been omitted in the above example, for clarity. I usually use one _Configuration_ instance for the whole app, and initialise it 
+with const strings once somewhere close to a main() method.
 + I usually keep many _Wire(configuration *Configuration)_ functions in my stack: one per package or so. I call them in sequence, but due to the asynchronous architecture  of the Pub-Sub and the Wire() method, objects are created when they need to.  
 + The Add(...) method above *escapes* if a given Topic already exists in the map. This is important, and obvious if you think about it for a second: you might be wiping out 
 somebody's Subscribers, if you allow overwriting. And by doing so, you are in strong risk of a _panic_ or at least an indefinite block/deadlock. 
