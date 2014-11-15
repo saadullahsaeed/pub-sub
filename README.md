@@ -72,7 +72,8 @@ subscriber := func(event interface{}) {
 topic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
-awaitForResult := AwaitAll([]Topic { firstTopic, secondTopic}, time.Duration(10)*time.Second)
+awaitForResult := AwaitAll([]Topic { firstTopic, secondTopic}, 
+    time.Duration(10)*time.Second)
 result := <-awaitForResult
 ```
 Do note the last line. In this line, you are waiting for a collection of results from all used Topics. This line will _block_ if 10 seconds pass (we are
@@ -154,16 +155,22 @@ func (c *Configuration) Get(name string) events.Topic {
 }
 
 func Wire(configuration *Configuration) {
-    //running this asynchronously is important! 
-    //This - in most cases - is a big graph of dependencies, where one object may create many others. This graph's execution tree might not necessarily 
-    //reflect the order in which you call Wire() methods in your stack. 
+    //Running this asynchronously is important! 
+    //You usually have - in most cases - a big graph of 
+    //dependencies, where one object may create 
+    //many others. That graph's 
+    //execution tree might not necessarily 
+    //reflect the order in which you call 
+    //various Wire() 
+    //methods in your stack. 
     go func () {
         dependencies := <-events.MustAwaitAll([]events.Topic{
             configuration.Get(ADDRESS),
             conciguration.Get(PERSONAL_DETAILS)
         }, time.Duration(1)*time.Second)
 
-        //The objects need to cast, because events.MustAwaitAll returns a map[string]interface{}
+        //The objects need to cast, because 
+        //events.MustAwaitAll returns a map[string]interface{}
         //If Go had generics...
         address := dependencies[ADDRESS].(*Address)
         personalDetails := dependencies[PERSONAL_DETAILS].(*PersonalDetails)
@@ -172,8 +179,10 @@ func Wire(configuration *Configuration) {
         //...but add it back to the Configuration
         newDependency := events.NewTopic(CUSTOMER) 
         configuration.Add(CUSTOMER, newDependency)
-        //alert all high-level objects that might await for a Customer instance that it is now available
-        newDependency.NewPublisher()(customer) //we construct the function here and instantly call it...
+        //alert all high-level objects that might 
+        //await for a Customer instance that it is now available
+        newDependency.NewPublisher()(customer) 
+        //in above line, we construct the function and instantly call it...
     }()
 }
 ```
