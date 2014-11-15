@@ -78,7 +78,8 @@ result := <-awaitForResult
 Do note the last line. In this line, you are waiting for a collection of results from all used Topics. This line will _block_ if 10 seconds pass (we are
 using a 10 second timeout in the call to _AwaitAll_). This aspect depends on the function used: 
 if you were to use _MustAwaitAll_ (instead of _AwaitAll_), the call to MustAwaitAll will _panic_ if Publish events do not 
-occur on all Topics in specified time (hence, <-awaitForResult will either succeed or you have a _panic_). In case of the used _AwaitAll_ you do not 
+occur on all Topics in specified time (hence, 
+<-awaitForResult will either succeed or you have a _panic_). In case of the used _AwaitAll_ you do not 
 receive a _panic_, but your call to <-awaitForAll will block. 
 Personally, I prefer MustAwaitAll as it makes more sense to me, but there are people who do not like code that _panics_. 
 Next version of this stack will most probably have _AwaitAll_ return an error in such cases. 
@@ -122,9 +123,11 @@ In typical, non-DI way, _Customer_ would be created with some form of constructo
 ```
 As the code or complexity of the object rises, the above construction pattern becomes a pain to test and maintain. You are forced to create a chain of constructors (maintained by
 the high-level object) in order to construct a high-level object from its low-level dependencies.  
-Raising the number of dependencies often ends with the creation of mid-level objects, that become a burden to maintain, etci, because of the need to test them and make them interchangeable... 
+Raising the number of dependencies often ends with the creation of mid-level objects, that become a burden to maintain, etc, 
+because of the need to test them and make them interchangeable...If you sometimes wonder why you need all these unit-tests, then
+you are not alone. 
 
-You can proceed a bit differently than just with using a chain of constructors (or setters). 
+However, you can proceed a bit differently here than just by using a chain of constructors (or setters).  
 
 Consider a hypothetical Wire(...) method and a Configuration struct shown below. 
 
