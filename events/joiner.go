@@ -7,43 +7,43 @@ import (
 )
 
 /* Represents results of calling AwaitAll, MustAwaitAll, AwaitOr, MustAwairOr. Technically, it is a container for a map of events (each parameterised by a Topic key) and an optional error */
-type Result struct {
-    events map[string]interface{}
-    err error
+type EventsOrError struct {
+    Events map[string]interface{}
+    Err error
 }
 
 /* Allows you to subscribe to multiple Topics at once, and wait until ALL of them have been notified by a Publish. Do note, that due to the architecture, the function may wait indefinitely, if one of the Topics does not have a Publish.*/
-func AwaitAll(pendingEvents []Topic, waitFor time.Duration) <-chan *Result {
+func AwaitAll(pendingEvents []Topic, waitFor time.Duration) <-chan *EventsOrError {
     return await(pendingEvents, waitFor, verifyIfAllEventsOccured)
 }
 
 /* Allows you to subscribe to multiple Topics at once, and wait until ANY of them have been notified by a Publish. Do note, that due to the architecture, the function may wait indefinitely, if one of the Topics does not have a Publish.*/
-func AwaitOr(pendingEvents []Topic, waitFor time.Duration) <-chan *Result {
+func AwaitAny(pendingEvents []Topic, waitFor time.Duration) <-chan *EventsOrError {
     return await(pendingEvents, waitFor, verifyIfAnyEventOccured)
 }
 
 /* Allows you to subscribe to multiple Topics at once, and wait until ALL of them have been notified by a Publish. Do note, the function may panic after the specified Duration if it events have not appeared in all provided Topics. */
 func MustAwaitAll(pendingEvents []Topic, waitFor time.Duration) map[string]interface{} {
     result := <-await(pendingEvents, waitFor, verifyIfAllEventsOccured)
-    if result.err != nil {
-        panic(result.err.Error())
+    if result.Err != nil {
+        panic(result.Err.Error())
     }
-    return result.events
+    return result.Events
 }
 
 /* Allows you to subscribe to multiple Topics at once, and wait until ANY of them have been notified by a Publish. Do note, the function may panic after the specified Duration if it events have not appeared in all provided Topics. */
-func MustAwaitOr(pendingEvents []Topic, waitFor time.Duration) map[string]interface{} {
+func MustAwaitAny(pendingEvents []Topic, waitFor time.Duration) map[string]interface{} {
     result := <-await(pendingEvents, waitFor, verifyIfAnyEventOccured)
-    if result.err != nil {
-        panic(result.err.Error())
+    if result.Err != nil {
+        panic(result.Err.Error())
     }
-    return result.events
+    return result.Events
 }
 
-func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[string]interface{}, []Topic) bool) <-chan *Result {
+func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[string]interface{}, []Topic) bool) <-chan *EventsOrError {
     events := map[string]interface{} {}
     pending := make(chan map[string]interface{})
-    releaser := make(chan *Result)
+    releaser := make(chan *EventsOrError)
     newSubscriber := func(name string) func(event interface{}) {
         return func(event interface{}) {
             pending <- map[string]interface{} { name : event }
@@ -63,7 +63,7 @@ func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[strin
                     events[key] = value
                 }
                 if verifier(events, pendingEvents) {
-                    releaser<- &Result { events, nil }
+                    releaser<- &EventsOrError { events, nil }
                     return
                 }
             case <-time.After(waitFor):
@@ -73,7 +73,7 @@ func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[strin
                         notFound = append(notFound, value.String())
                     }
                 }
-                releaser<- &Result { events, errors.New(fmt.Sprintf("Some events have not been published in the expected timeframe: %v", notFound)) }
+                releaser<- &EventsOrError { events, errors.New(fmt.Sprintf("Some events have not been published in the expected timeframe: %v", notFound)) }
                 return
             }
         }

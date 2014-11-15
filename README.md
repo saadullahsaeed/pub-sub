@@ -14,6 +14,11 @@ This library assumes Go version 1.3.3+. Previous versions of Go have a different
 As in a traditional Publish-Subscriber pattern, this library provides a concept of a Topic (known as a Message bus elsewhere). Clients of this library construct a Topic, and 
 then may assign Publishers and Subscribers to it in an (a)synchronous way. 
 Publishers send the news, Subscribers react to it. 
+
+The other part of the library is support for a Join pattern. Two operations are provided: an AND and an OR (you can think of signal processing here, as in a circuit). 
+The AND gate returns a map of all Published events or terminates with an error. The OR gate returns a map of a Published (out of many) or terminates with an error. 
+Two additional helper methods are provided, preceded with '_Must_': they replicate the base behaviour (of functions without the _Must_), but _panic_ in case of errors. 
+This is useful in code, that if wrong, should terminate the application.
  
 The API exposes 4 interfaces and several functions:
 + _Publisher_ -- which represents the Sender of events, and is a shorthand for _func(interface{})_. Invoking the Publisher (or invoking the function) - is the act of sending of an event. 
@@ -23,13 +28,20 @@ The event that the Publisher sent is passed as the parameter to the function cal
 use this field, and if only - it's for informative reasons. Topics allow you to create Publishers and Subscribers. Bear in mind: since queues are not used, events are _blocked_ when you invoke 
 Publishers, until at least one Subscriber is available. This is to prevent a situation where Publishing occurs before Subscribing.  
 + _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
-+ _NamedEvents_ -- which represents a map of events. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
++ _EventsOrError_ -- which represents a map of events with an optional error. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
 be henceforth represented by a Go map, where each key reflects the name of the Topic. This construct is useful for the _AwaitAll/MustAwaitAll_ function. 
-+ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. Hence it is a logical AND gate of 
-multiple Topic subscriptions. Do note, that the function may wait indefinitely, if one of the Topics does not have a Publish. Still, the advantage in this method, is that it does not panic. 
++ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a specified duration of time lapses 
+- whichever occurs earlier. Hence it is a logical AND gate of multiple Topic subscriptions. The advantage of this function, is that it does not panic, which is useful in some contexts. 
 + _MustAwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a 
 specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
 the expected time lapses, and a Publish did not arrive at a specified Topic, this function will panic.   
++ _AwaitAny_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish, or a specified 
+duration of time lapses - whichever occurs earlier. Hence it is a logical OR gate of multiple Topic subscriptions. 
+The advantage of this function, is that it does not panic, which is useful in some contexts. 
++ _MustAwaitAny_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish, or a 
+specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
+the expected time lapses, and a Publish did not arrive, this function will panic.   
+ 
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
 
