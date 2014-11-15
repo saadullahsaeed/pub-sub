@@ -27,7 +27,7 @@ func TestThat_Joiner_BasicallyWorks(t *testing.T) {
     go firstTopic.NewPublisher()("Louis Armstrong was great!")
     go secondTopic.NewPublisher()("The best duo was Charlie Parker and Diz in the 40s")
     //then
-    result := <-releaser
+    result := (<-releaser).events
     assert.IsNotNil(result).AreEqual("Louis Armstrong was great!", result["rants-about-fusion"]).
         AreEqual("The best duo was Charlie Parker and Diz in the 40s", result["rants-about-bebop"])
 }
