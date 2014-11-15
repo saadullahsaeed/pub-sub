@@ -16,18 +16,18 @@ then may assign Publishers and Subscribers to it in an (a)synchronous way.
 Publishers send the news, Subscribers react to it. 
  
 The API exposes 4 interfaces and several functions:
-+ Publisher -- which represents the Sender of events, and is a shorthand for func(interface{}). Invoking the Publisher (or invoking the function) - is the act of sending of an event. 
-+ Subscriber -- which represents the Receiver of events, and is a shorthand for func(interface{}). You do not invoke the Subscriber, but it is invoked for you when you are subscribing to a Topic. 
++ _Publisher_ -- which represents the Sender of events, and is a shorthand for _func(interface{})_. Invoking the Publisher (or invoking the function) - is the act of sending of an event. 
++ _Subscriber_ -- which represents the Receiver of events, and is a shorthand for _func(interface{})_. You do not invoke the Subscriber, but it is invoked for you when you are subscribing to a Topic. 
 The event that the Publisher sent is passed as the parameter to the function call. 
-+ Topic -- which represents the typical Pub-Sub _Topic_ parties can subscribe to. Each Topic has a name, which in theory should identify it uniquely among other topics. The implementation does not 
++ _Topic_ -- which represents the typical Pub-Sub _Topic_ parties can subscribe to. Each Topic has a name, which in theory should identify it uniquely among other topics. The implementation does not 
 use this field, and if only - it's for informative reasons. Topics allow you to create Publishers and Subscribers. Bear in mind: since queues are not used, events are _blocked_ when you invoke 
 Publishers, until at least one Subscriber is available. This is to prevent a situation where Publishing occurs before Subscribing.  
-+ NewTopic -- is a public function that allows you to create a Topic with a name. 
-+ NamedEvents -- which represents a map of events. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
-be henceforth represented by a Go map, where each key reflects the name of the Topic. This construct is useful for the AwaitAll/MustAwaitAll function. 
-+ AwaitAll -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. Hence it is a logical AND gate of 
++ _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
++ _NamedEvents_ -- which represents a map of events. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
+be henceforth represented by a Go map, where each key reflects the name of the Topic. This construct is useful for the _AwaitAll/MustAwaitAll_ function. 
++ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. Hence it is a logical AND gate of 
 multiple Topic subscriptions. Do note, that the function may wait indefinitely, if one of the Topics does not have a Publish. Still, the advantage in this method, is that it does not panic. 
-+ MustAwaitAll -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a 
++ _MustAwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a 
 specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
 the expected time lapses, and a Publish did not arrive at a specified Topic, this function will panic.   
 
@@ -82,8 +82,10 @@ if you were to use _MustAwaitAll_ (instead of _AwaitAll_), the call to MustAwait
 occur on all Topics in specified time (hence, 
 <-awaitForResult will either succeed or you have a _panic_). In case of the used _AwaitAll_ you do not 
 receive a _panic_, but your call to <-awaitForAll will block. 
+
 Personally, I prefer MustAwaitAll as it makes more sense to me, but there are people who do not like code that _panics_. 
-Next version of this stack will most probably have _AwaitAll_ return an error in such cases. 
+Next version of this stack will most probably have _AwaitAll_ return an error in such cases (so it's in the spirit of 
+standard Go libraries). 
 
 ### A simple Dependency Injection framework
 The above example shows something that can be seen as a simplified DI framework. Example provided below will try to clarify this a bit further.
@@ -194,7 +196,7 @@ func Wire(configuration *Configuration) {
 
 Two very important notes:
 + Note that Topics _block_ if there are no Subscribers listening. That's why MustAwaitAll function is used, which _panics_ if the wiring of modules does not finish in a prescribed amount of time. 
-The _panic's_ message will alert you which Topics have not been Publisher in the given timeframe. You can specify the timeframe manually (see above example). 
+The _panic's_ message will alert you which Topics have not been Published in the given timeframe. You can specify the timeframe manually (see above example). 
 + Remember that Topics need to be *Closed*. You are using go-routines in the background which should be released when the Topics are no longer in usage. A pattern which you can implement is to 
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
