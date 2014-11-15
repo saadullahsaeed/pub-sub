@@ -24,8 +24,8 @@ func TestThat_Joiner_BasicallyWorks(t *testing.T) {
     secondTopic := NewTopic("rants-about-bebop")
     //when
     releaser := AwaitAll([]Topic { firstTopic, secondTopic }, time.Duration(10)*time.Second)
-    go firstTopic.NewPublisher()("Louis Armstrong was great!")
-    go secondTopic.NewPublisher()("The best duo was Charlie Parker and Diz in the 40s")
+    firstTopic.NewPublisher()("Louis Armstrong was great!")
+    secondTopic.NewPublisher()("The best duo was Charlie Parker and Diz in the 40s")
     //then
     result := (<-releaser).events
     assert.IsNotNil(result).AreEqual("Louis Armstrong was great!", result["rants-about-fusion"]).
