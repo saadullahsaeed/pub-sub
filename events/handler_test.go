@@ -16,9 +16,10 @@ func TestThat_PubSub_Works(t *testing.T) {
     }
     topic.NewSubscriber(subscriber)
     //when
-    go publisher("and I get to talk about jazz")
+    publisher("and I get to talk about jazz")
     //then the subscriber actually got invoked since the channel received some news
     assert.AreEqual("and I get to talk about jazz", <-channel)
+    topic.Close()
 }
 
 func TestThat_MultiplePublishers_Work(t *testing.T) {
@@ -33,11 +34,12 @@ func TestThat_MultiplePublishers_Work(t *testing.T) {
     }
     topic.NewSubscriber(subscriber)
     //when
-    go firstPublisher("and I get to talk about jazz")
-    go secondPublisher("and I get to talk about bebop")
+    firstPublisher("and I get to talk about jazz")
+    secondPublisher("and I get to talk about bebop")
     //then 
     assert.AreEqual("and I get to talk about jazz", <-channel)
     assert.AreEqual("and I get to talk about bebop", <-channel)
+    topic.Close()
 }
 
 func TestThat_MultipleSubscribers_Work(t *testing.T) {
@@ -55,10 +57,20 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
     topic.NewSubscriber(firstSubscriber)
     topic.NewSubscriber(secondSubscriber)
     //when
-    go publisher("was Charlie better than John")
+    publisher("was Charlie better than John")
     //then the subscriber actually got invoked since the channel received some news
     firstResult := <-channel
     secondResult := <-channel
     assert.AreEqual([]string { firstResult, secondResult}, []string{ "one", "two"})
+    topic.Close()
 }
 
+func Benchmark_Propagation(b *testing.B) {
+    topic := NewTopic("my-awesome-rant")
+    subscriber := func(interface{}) {}
+    topic.NewSubscriber(subscriber)
+    for n:=0; n<b.N;n++ {
+        topic.NewPublisher()("Or is Keith J the best")
+    }
+    //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
+}

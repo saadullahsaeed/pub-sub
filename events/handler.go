@@ -36,12 +36,17 @@ type topic struct {
     newSubscribers chan Subscriber
     name string
     events chan interface{}
+    finish chan bool
     subscribers []Subscriber
 }
 
 func (t *topic) NewPublisher() Publisher {
     publisher := func(event interface{}) {
-        t.events<- event
+        //it's crucial this is in a go-routine: running 2+ Publishers in the same
+        //go-routine causes a deadlock without this.
+        go func() {
+            t.events<- event
+        }()
     }
     return publisher
 }
@@ -54,6 +59,7 @@ func (t *topic) String() string {
 func (t *topic) Close() error {
     close(t.newSubscribers)
     close(t.events)
+    close(t.finish)
     return nil
 }
 
@@ -65,11 +71,19 @@ func (t *topic) run() {
         }
         for ;; {
             select {
+            case <-t.finish:
+                return
             case newSubscriber:=<-t.newSubscribers:
-                t.subscribers = append(t.subscribers, newSubscriber)
+                //note: when channel is closed newSubscriber == nil
+                if newSubscriber != nil {
+                    t.subscribers = append(t.subscribers, newSubscriber)
+                }
             case event:=<-t.events:
-                for _, subscriber := range t.subscribers {
-                    subscriber(event)
+                //note: when channel is closed event == nil
+                if event != nil {
+                    for _, subscriber := range t.subscribers {
+                        subscriber(event)
+                    }
                 }
             }
         }
@@ -82,7 +96,7 @@ The 'buffer' parameter specifies the size of an internal channel that determines
 https://golang.org/doc/effective_go.html#channels. 
 */
 func NewTopic(topicName string) Topic {
-    bus := &topic { make(chan Subscriber), topicName, make(chan interface{}), []Subscriber{} }
+    bus := &topic { make(chan Subscriber), topicName, make(chan interface{}), make(chan bool), []Subscriber{} }
     bus.run()
     return bus
 }

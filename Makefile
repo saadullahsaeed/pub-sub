@@ -44,6 +44,11 @@ a-unit-test-check: available
 	@export GOPATH=$(WORKDIR) && go test $(PACKAGES)
 	@echo 'Finished unit-tests'
 
+a-benchmark-check: available 
+	@echo 'Running benchmark'
+	@export GOPATH=$(WORKDIR) && go test -bench=. $(PACKAGES)
+	@echo 'Finished unit-tests'
+
 a-build: available
 	@echo 'Running a build (linking)'
 	@export GOPATH=$(WORKDIR) && go clean $(PACKAGES) && go install $(PACKAGES)
