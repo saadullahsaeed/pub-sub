@@ -51,6 +51,7 @@ subscriber := func(event interface{}) {
 topic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
+topic.Close()
 ```
 
 ### Simple usage of the AwaitAll() functions (a Join pattern on an array of Topics)
@@ -69,12 +70,15 @@ subscriber := func(event interface{}) {
     //prove to me that something was sent...
    log.Println(event) 
 }
-topic.NewSubscriber(subscriber)
+firstTopic.NewSubscriber(subscriber) 
+secondTopic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
 awaitForResult := AwaitAll([]Topic { firstTopic, secondTopic}, 
     time.Duration(10)*time.Second)
 result := <-awaitForResult
+firstTopic.Close()
+secondTopic.Close()
 ```
 Do note the last line. In this line, you are waiting for a collection of results from all used Topics. This line will _block_ if 10 seconds pass (we are
 using a 10 second timeout in the call to _AwaitAll_). This aspect depends on the function used: 
