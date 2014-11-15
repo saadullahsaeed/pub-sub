@@ -134,7 +134,12 @@ Consider a hypothetical Wire(...) method and a Configuration struct shown below.
 
 ```go
 const (
-//  The const values below are arbitrary strings, yet I wanted to express the fact that this is mainly for singleton creation usage.
+//The const values below are arbitrary strings, 
+//yet I wanted to express the fact that this is 
+//mainly for singleton creation usage.
+//If you want to create numerous objects
+//then this approach would probably be used to 
+//make a factory
     ADDRESS = "address_singleton"
     PERSONAL_DETAILS = "personalDetails_singleton"
     CUSTOMER = "customer_singleton"
