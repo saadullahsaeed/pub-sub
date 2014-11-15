@@ -199,11 +199,7 @@ The _panic's_ message will alert you which Topics have not been Publisher in the
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
 Some minor notes:
-+ I usually keep *many*
-```go
-Wire(configuration *Configuration) 
-```
-functions in my stack: one per package or so. I call them in sequence, but due to the asynchronous architecture  of the Pub-Sub and the Wire() method, objects are created when they need to.  
++ I usually keep *many* _Wire(configuration *Configuration)_ functions in my stack: one per package or so. I call them in sequence, but due to the asynchronous architecture  of the Pub-Sub and the Wire() method, objects are created when they need to.  
 + The Add(...) method above *escapes* if a given Topic already exists in the map. This is important, and obvious if you think about it for a second: you might be wiping out 
 somebody's Subscribers, if you allow overwriting. And by doing so, you are in strong risk of a _panic_ or at least an indefinite block/deadlock. 
 + The Configuration model you have above is not go-routine proof. However, in most cases the act of configuring of an app is in most cases something you run sequentially in a single 
