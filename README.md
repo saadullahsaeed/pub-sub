@@ -30,8 +30,8 @@ Publishers, until at least one Subscriber is available. This is to prevent a sit
 + _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
 + _EventsOrError_ -- which represents a map of events with an optional error. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
 be henceforth represented by a Go map, where each key reflects the name of the Topic. This construct is useful for the _AwaitAll/MustAwaitAll_ function. 
-+ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a specified duration of time lapses 
-- whichever occurs earlier. Hence it is a logical AND gate of multiple Topic subscriptions. The advantage of this function, is that it does not panic, which is useful in some contexts. 
++ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a specified duration of time 
+lapses - whichever occurs earlier. Hence it is a logical AND gate of multiple Topic subscriptions. The advantage of this function, is that it does not panic, which is useful in some contexts. 
 + _MustAwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a 
 specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
 the expected time lapses, and a Publish did not arrive at a specified Topic, this function will panic.   
