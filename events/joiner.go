@@ -46,6 +46,11 @@ func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[strin
     releaser := make(chan *EventsOrError)
     newSubscriber := func(name string) func(event interface{}) {
         return func(event interface{}) {
+            defer func() {
+                if err:=recover(); err!=nil {
+                    //ignore, as this is due to the 'pending' channel being closed while a send is in progress
+                }
+            }()
             pending <- map[string]interface{} { name : event }
         }
     }
@@ -64,6 +69,7 @@ func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[strin
                 }
                 if verifier(events, pendingEvents) {
                     releaser<- &EventsOrError { events, nil }
+                    close(pending)
                     return
                 }
             case <-time.After(waitFor):
@@ -74,6 +80,7 @@ func await(pendingEvents []Topic, waitFor time.Duration, verifier func(map[strin
                     }
                 }
                 releaser<- &EventsOrError { events, errors.New(fmt.Sprintf("Some events have not been published in the expected timeframe: %v", notFound)) }
+                close(pending)
                 return
             }
         }
