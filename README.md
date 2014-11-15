@@ -202,7 +202,7 @@ Some minor notes:
 + I usually keep many _Wire(configuration *Configuration)_ functions in my stack: one per package or so. I call them in sequence, but due to the asynchronous architecture  of the Pub-Sub and the Wire() method, objects are created when they need to.  
 + The Add(...) method above *escapes* if a given Topic already exists in the map. This is important, and obvious if you think about it for a second: you might be wiping out 
 somebody's Subscribers, if you allow overwriting. And by doing so, you are in strong risk of a _panic_ or at least an indefinite block/deadlock. 
-+ The Configuration model you have above is not go-routine proof. However, in most cases the act of configuring of an app is in most cases something you run sequentially in a single 
++ The Configuration model you have above is not go-routine proof. However, in most cases the act of configuring of an app is something you run sequentially in a single 
 go-routine. This might not be true always. If you are forced to use _Add()_ or _Get()_ from go-routines, you should change the implementation to be go-routine-proof: 
 pass state via channel calls. Passing state via channels (known also as the 'share by communicating' pattern) has been stronly supported by the inventors of Go language, 
 search for it and absolution shall be yours.  
