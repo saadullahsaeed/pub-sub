@@ -7,7 +7,7 @@ import (
     "io"
 )
 /*
-The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event.kkPublishers can be created by any Topic instance. 
+The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. Publishers can be created by any Topic instance. 
 */
 type Publisher func(interface{})
 /*
@@ -20,9 +20,11 @@ The implementation does not use this name, unless for informative reasons. Topic
 Topics can be closed -- this closes the Topic permanently.
 */
 type Topic interface {
-    //Allows you to create a new Publisher for a Topic. 
-    NewPublisher() Publisher
+    //Allows you to create a new Publisher for a Topic. If you provide a callback (optional) here, it is guaranteed to be invoked during the publishing act.
+    //Publishing may occur in its own go-routine, and it's not guaranteed that the order you call Publishers is preserved (especially if you write to multiple Topics). 
+    NewPublisher(optionalCallback Publisher) Publisher
     //Allows you to register an arbitrary Subscriber for events in the Topic
+    //Subscribing may occur in its own go-routine, hence even if the act of subscribing 'blocks' (for example due to the waiting on channel), the remainders of the Topic still execute normally. 
     NewSubscriber(subscriber Subscriber)
     //Returns the topic's name
     String() string
@@ -40,12 +42,16 @@ type topic struct {
     subscribers []Subscriber
 }
 
-func (t *topic) NewPublisher() Publisher {
+func (t *topic) NewPublisher(optionalCallback Publisher) Publisher {
     publisher := func(event interface{}) {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
         go func() {
             t.events<- event
+            //client will not know something is wrong (deadlock?) if they provide a dodgy callback
+            if optionalCallback != nil {
+                optionalCallback(event)
+            }
         }()
     }
     return publisher
@@ -92,14 +98,14 @@ func (t *topic) run() {
 }
 
 /* 
-Creates a new Topic that can create Publishers and which Subscribers can attach to. 
-The 'buffer' parameter specifies the size of an internal channel that determines when 'blocking' starts to occur. If you don't know what to put there, specify a 100 or so. Otherwise, consult 
-https://golang.org/doc/effective_go.html#channels. 
+Creates a new Topic that can create Publishers and Subscribers that run in separate go-routines. This means order of Publishing may not be guaranteed to some extent. 
+Likewise, the order in which Subscribers are called can't be fully guaranteed.
+The optionalCallback (passed as a parameter to the Publisher) is invoked (in this implementation) after the publishing actually occured. 
+One of the tests to this library, shows an example how to 'synchronise' Publisher execution with the use of a channel: this adds overhead, though.
 */
 func NewTopic(topicName string) Topic {
     bus := &topic { make(chan Subscriber), topicName, make(chan interface{}), make(chan bool), []Subscriber{} }
     bus.run()
     return bus
 }
-
 

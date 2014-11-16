@@ -11,6 +11,33 @@ import (
     "fmt"
 )
 
+func Test_And_WithMultipleTopics(t *testing.T) {
+    //given
+    results := runFixtureAndOp("test1.json", And)
+    //then
+    expectResult(assertions.New(t), <-results, collectedResults {
+        "topic1" : []interface{} { "hello", "how are you?" },
+        "topic2" : []interface{} { "hello" },
+    })
+}
+
+func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
+    //given
+    results := runFixtureAndOp("test2.json", And)
+    //then
+    expectError(assertions.New(t), <-results)
+}
+
+func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
+    //given
+    results := runFixtureAndOp("test3.json", And)
+    //then
+    expectResult(assertions.New(t), <-results, collectedResults {
+        "topic1" : []interface{} { "hello" },
+        "topic2" : []interface{} { "don't want to talk to you anymore" },
+    })
+}
+
 type fixture struct {
     Topics []string `json:"topics"`
     Test []map[string]string `json:"test"`
@@ -28,7 +55,7 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func forTestFixture(filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
+func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}
@@ -40,7 +67,10 @@ func forTestFixture(filepath string, topicOperation func([]Topic, string) Topic)
     topic := topicOperation(topicsArray, "results")
     for _, publish := range fixture.Test {
         for name, message := range publish {
-            topics[name].NewPublisher()(message)
+            //note: the above technique streamlines execution of Publishers...
+            streamLine := make(chan bool)
+            topics[name].NewPublisher(func(interface{}) { streamLine <- true })(message)
+            <-streamLine
         }
     }
     subscriber := func(topicMessage interface{}) {
@@ -63,10 +93,10 @@ func forTestFixture(filepath string, topicOperation func([]Topic, string) Topic)
 
 func expectResult(assert assertions.Assertions, results interface{}, expected interface{}) {
     switch results.(type) {
-    case map[string][]interface{}:
-        assert.AreEqual(len(expected.(map[string][]interface{})), len(results.(map[string][]interface{})))
-        for key, value := range expected.(map[string][]interface{}) {
-            assert.AreEqual(value, results.(map[string][]interface{})[key])
+    case collectedResults:
+        assert.AreEqual(len(expected.(collectedResults)), len(results.(collectedResults)))
+        for key, value := range expected.(collectedResults) {
+            assert.AreEqual(value, results.(collectedResults)[key])
         }
     case error:
         assert.IsTrue(false)
@@ -86,33 +116,4 @@ func expectError(assert assertions.Assertions, results interface{}) {
         log.Println(fmt.Sprintf("Expecting a different type: %T", results))
         assert.IsTrue(false)
     }
-
 }
-
-func Test_And_WithMultipleTopics(t *testing.T) {
-    //given
-    results := forTestFixture("test1.json", And)
-    //then
-    expectResult(assertions.New(t), <-results, map[string][]interface{} {
-        "topic1" : []interface{} { "hello", "how are you?" },
-        "topic2" : []interface{} { "hello" },
-    })
-}
-
-func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
-    //given
-    results := forTestFixture("test2.json", And)
-    //then
-    expectError(assertions.New(t), <-results)
-}
-
-func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
-    //given
-    results := forTestFixture("test3.json", And)
-    //then
-    expectResult(assertions.New(t), <-results, map[string][]interface{} {
-        "topic1" : []interface{} { "hello" },
-        "topic2" : []interface{} { "don't want to talk to you anymore" },
-    })
-}
-

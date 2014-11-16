@@ -10,7 +10,7 @@ func TestThat_PubSub_Works(t *testing.T) {
     assert := assertions.New(t)
     topic := NewTopic("my-awesome-rant")
     channel := make(chan string)
-    publisher := topic.NewPublisher()
+    publisher := topic.NewPublisher(nil)
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
@@ -27,8 +27,8 @@ func TestThat_MultiplePublishers_Work(t *testing.T) {
     assert := assertions.New(t)
     topic := NewTopic("my-awesome-rant")
     channel := make(chan string)
-    firstPublisher := topic.NewPublisher()
-    secondPublisher := topic.NewPublisher()
+    firstPublisher := topic.NewPublisher(nil)
+    secondPublisher := topic.NewPublisher(nil)
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
@@ -47,7 +47,7 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
     assert := assertions.New(t)
     topic := NewTopic("my-awesome-rant")
     channel := make(chan string)
-    publisher := topic.NewPublisher()
+    publisher := topic.NewPublisher(nil)
     firstSubscriber := func(event interface{}) {
         channel<-"one"
     }
@@ -70,7 +70,7 @@ func Benchmark_Propagation(b *testing.B) {
     subscriber := func(interface{}) {}
     topic.NewSubscriber(subscriber)
     for n:=0; n<b.N;n++ {
-        topic.NewPublisher()("Or is Keith J the best")
+        topic.NewPublisher(nil)("Or is Keith J the best")
     }
     //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
 }
