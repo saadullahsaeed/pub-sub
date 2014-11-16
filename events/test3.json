@@ -1,0 +1,12 @@
+{
+    "topics" : ["topic1", "topic2"],
+    "test": [
+        {
+            "topic1" : "hello"
+        }, {
+            "topic2" : "don't want to talk to you anymore"
+        }, {
+            "topic1" : "hey, wait, I am talking to you"
+        }
+    ]
+}

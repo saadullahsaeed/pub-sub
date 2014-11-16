@@ -28,20 +28,12 @@ The event that the Publisher sent is passed as the parameter to the function cal
 use this field, and if only - it's for informative reasons. Topics allow you to create Publishers and Subscribers. Bear in mind: since queues are not used, events are _blocked_ when you invoke 
 Publishers, until at least one Subscriber is available. This is to prevent a situation where Publishing occurs before Subscribing.  
 + _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
-+ _EventsOrError_ -- which represents a map of events with an optional error. As mentioned below, events are assumed to be represented by _interface{}_. A batch of events - from various topics - can 
-be henceforth represented by a Go map, where each key reflects the name of the Topic. This construct is useful for the _AwaitAll/MustAwaitAll_ function. 
-+ _AwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a specified duration of time 
-lapses - whichever occurs earlier. Hence it is a logical AND gate of multiple Topic subscriptions. The advantage of this function, is that it does not panic, which is useful in some contexts. 
-+ _MustAwaitAll_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish, or a 
-specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
-the expected time lapses, and a Publish did not arrive at a specified Topic, this function will panic.   
-+ _AwaitAny_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish, or a specified 
-duration of time lapses - whichever occurs earlier. Hence it is a logical OR gate of multiple Topic subscriptions. 
-The advantage of this function, is that it does not panic, which is useful in some contexts. 
-+ _MustAwaitAny_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish, or a 
-specified duration of time lapses - whichever occurs earlier. Like, AwaitAll - this is a logical AND gate of multiple Topic subscriptions. Do note, that if 
-the expected time lapses, and a Publish did not arrive, this function will panic.   
- 
++ _And_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. 
+Hence it is a logical AND gate of multiple Topic subscriptions. Since Publish events might occur repeatedly on one of the provided Topics before data is passed to the returned Topic, 
+the actual type of the returned data is _map[string][]interface{}_, where each key of the map reflects the name of one of the provided Topics.  
++ _Or_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish. 
+Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, the returned type is _map[string][]interface{}_. The reason is that a common function/pattern is used behind the scenes, 
+it also promotes a uniform interface.  
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
 
@@ -66,7 +58,7 @@ publisher("Inform about an event")
 topic.Close()
 ```
 
-### Simple usage of the AwaitAll() functions (a Join pattern on an array of Topics)
+### Simple usage of the And() functions (a Join pattern on an array of Topics)
 This example builds on the previous one and shows how to implement a Join pattern on the Topics. Imagine, you have more than one Topic, and you want to wait
 until all have been notified. Here's how you may go at it:
 ```go
@@ -86,22 +78,14 @@ firstTopic.NewSubscriber(subscriber)
 secondTopic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
-awaitForResult := AwaitAll([]Topic { firstTopic, secondTopic}, 
-    time.Duration(10)*time.Second)
-result := <-awaitForResult
+topic := And([]Topic { firstTopic, secondTopic}, "my-latest-rants")
 firstTopic.Close()
 secondTopic.Close()
 ```
-Do note the last line. In this line, you are waiting for a collection of results from all used Topics. This line will _block_ if 10 seconds pass (we are
-using a 10 second timeout in the call to _AwaitAll_). This aspect depends on the function used: 
-if you were to use _MustAwaitAll_ (instead of _AwaitAll_), the call to MustAwaitAll will _panic_ if Publish events do not 
-occur on all Topics in specified time (hence, 
-<-awaitForResult will either succeed or you have a _panic_). In case of the used _AwaitAll_ you do not 
-receive a _panic_, but your call to <-awaitForAll will block. 
 
-Personally, I prefer MustAwaitAll as it makes more sense to me, but there are people who do not like code that _panics_. 
-Next version of this stack will most probably have _AwaitAll_ return an error in such cases (so it's in the spirit of 
-standard Go libraries). 
+What's probably worthy of mentioning at this point, is that AND collects all data before it executes. Hence, if any of your topics Publish to the same Topic repeatedly, 
+before And fires, all of that data is preserved and provided to you in the callback. That's one of the reasons why, the actual type of the passed data is 
+_map[string][]interface{}_.
 
 ### A simple Dependency Injection framework
 The above example shows something that can be seen as a simplified DI framework. Example provided below will try to clarify this a bit further.
@@ -187,16 +171,14 @@ func Wire(configuration *Configuration) {
     //various Wire() 
     //methods in your stack. 
     go func () {
-        dependencies := <-events.MustAwaitAll([]events.Topic{
+        topic := <-events.And([]events.Topic{
             configuration.Get(ADDRESS),
             conciguration.Get(PERSONAL_DETAILS)
-        }, time.Duration(1)*time.Second)
+        })
 
-        //The objects need to cast, because 
-        //events.MustAwaitAll returns a map[string]interface{}
-        //If Go had generics...
-        address := dependencies[ADDRESS].(*Address)
-        personalDetails := dependencies[PERSONAL_DETAILS].(*PersonalDetails)
+        //The objects need to cast... If Go had generics...
+        address := topic[ADDRESS][0].(*Address)
+        personalDetails := topic[PERSONAL_DETAILS][0].(*PersonalDetails)
         //create the Customer instance just like normal...
         customer := &Customer { personalDetails, address }
         //...but add it back to the Configuration
@@ -211,8 +193,7 @@ func Wire(configuration *Configuration) {
 ```
 
 Two very important notes:
-+ Note that Topics _block_ if there are no Subscribers listening. That's why MustAwaitAll function is used, which _panics_ if the wiring of modules does not finish in a prescribed amount of time. 
-The _panic's_ message will alert you which Topics have not been Published in the given timeframe. You can specify the timeframe manually (see above example). 
++ Note that Topics _block_ if there are no Subscribers listening. You probably should use a WithTimeout() wrapper on the returned Topic to be more safe. 
 + Remember that Topics need to be *Closed*. You are using go-routines in the background which should be released when the Topics are no longer in usage. A pattern which you can implement is to 
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 

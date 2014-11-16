@@ -82,7 +82,8 @@ func (t *topic) run() {
                 //note: when channel is closed event == nil
                 if event != nil {
                     for _, subscriber := range t.subscribers {
-                        subscriber(event)
+                        //note: if subscriber sends something to a channel we don't want to be blocked.
+                        go subscriber(event)
                     }
                 }
             }
