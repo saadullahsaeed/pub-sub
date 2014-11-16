@@ -47,7 +47,7 @@ import (
 )
 
 topic := events.NewTopic("my-new-topic")
-publisher := topic.NewPublisher()
+publisher := topic.NewPublisher(nil)
 subscriber := func(event interface{}) {
     //prove to me that the Subscriber ran!
    log.Println(event) 
@@ -69,7 +69,7 @@ import (
 
 firstTopic := events.NewTopic("my-new-topic")
 secondTopic := events.NewTopic("my-latest-topic")
-publisher := topic.NewPublisher()
+publisher := topic.NewPublisher(nil)
 subscriber := func(event interface{}) {
     //prove to me that something was sent...
    log.Println(event) 
@@ -86,6 +86,9 @@ secondTopic.Close()
 What's probably worthy of mentioning at this point, is that AND collects all data before it executes. Hence, if any of your topics Publish to the same Topic repeatedly, 
 before And fires, all of that data is preserved and provided to you in the callback. That's one of the reasons why, the actual type of the passed data is 
 _map[string][]interface{}_.
+Apart from the above comment, usage of OR is identical to the example above. The Or function is actually simpler, since data does not have to be collected. 
+Still, the backing code converts the result into the same kind of structure (_map[string][]interface{}_), so that your event handling code for AND and OR results can be reused. 
+
 
 ### A simple Dependency Injection framework
 The above example shows something that can be seen as a simplified DI framework. Example provided below will try to clarify this a bit further.
