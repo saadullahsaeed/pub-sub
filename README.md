@@ -196,7 +196,8 @@ func Wire(configuration *Configuration) {
 ```
 
 Two very important notes:
-+ Note that Topics _block_ if there are no Subscribers listening. You probably should use a WithTimeout() wrapper on the returned Topic to be more safe. 
++ Note that Topics _block_ if there are no Subscribers listening or your code causes a deadlock. 
+You could use a WhenTimeout() wrapper on the returned Topic to be more safe, but WhenTimeout adds a Subscriber behind the scenes. 
 + Remember that Topics need to be *Closed*. You are using go-routines in the background which should be released when the Topics are no longer in usage. A pattern which you can implement is to 
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
@@ -216,3 +217,7 @@ but then this is not a DI engine done by a bunch of people. On the other hand, c
 _json/encoding_ package) to do the wiring. While I see advantages of this approach (and find it a good solution in case of _json/encoding_ package), I find I prefer a more explicit 
 DI approach, with a clear pattern of what is called and when. With the '`' notation, the wiring is hidden. If it works, it is beautiful. If it goes wrong, you are in for a search.
 Also, I was just happy to do it with channels and go-routines, not via reflection. 
+
+### TODOs
++ Add a WhenTimeout(Topic, time.Duration, string) Topic function.  
++ Add a Split(Topic, func(interface{}) Topic) function. 
