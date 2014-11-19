@@ -2,6 +2,7 @@ package events
 
 import (
     "log"
+    "fmt"
 )
 
 type collectedResults map[string][]interface{}
@@ -59,7 +60,9 @@ func whichCollectsToACommonChannel(newStates, currentState chan collectedResults
             }
         }()
         state := <-currentState
+        log.Println(fmt.Sprintf(":",state))
         state[topicName] = append(state[topicName], input)
+        log.Println(fmt.Sprintf("::",state))
         newStates<-state
     }
 }
@@ -73,7 +76,7 @@ func andListen(newStates, currentState chan collectedResults, publisher func(int
                 currentSize = currentSize + 1
             }
         }
-        log.Println(newState)
+        log.Println(fmt.Sprintf(":::%v",newState))
         if currentSize == releaseResultsWhenSizeReached {
             log.Println("Bong")
             publisher(copyAside(newState))
