@@ -181,20 +181,20 @@ func Wire(configuration *Configuration) {
             conciguration.Get(PERSONAL_DETAILS)
         })
         topic.NewSubscriber(func(rawResult interface{}) {
-        //The objects need to cast... If Go had generics...
-        //As mentioned above, AND returns map[string][]interface{} structs
-        result := rawResult.(map[string][]interface{})
-        address := result[ADDRESS][0].(*Address)
-        personalDetails := result[PERSONAL_DETAILS][0].(*PersonalDetails)
-        //create the Customer instance just like normal...
-        customer := &Customer { personalDetails, address }
-        //...but add it back to the Configuration
-        newDependency := events.NewTopic(CUSTOMER) 
-        configuration.Add(CUSTOMER, newDependency)
-        //alert all high-level objects that might 
-        //await for a Customer instance that it is now available
-        newDependency.NewPublisher(nil)(customer) 
-        //in above line, we construct the function and instantly call it...
+            //The objects need to cast... If Go had generics...
+            //As mentioned above, AND returns map[string][]interface{} structs
+            result := rawResult.(map[string][]interface{})
+            address := result[ADDRESS][0].(*Address)
+            personalDetails := result[PERSONAL_DETAILS][0].(*PersonalDetails)
+            //create the Customer instance just like normal...
+            customer := &Customer { personalDetails, address }
+            //...but add it back to the Configuration
+            newDependency := events.NewTopic(CUSTOMER) 
+            configuration.Add(CUSTOMER, newDependency)
+            //alert all high-level objects that might 
+            //await for a Customer instance that it is now available
+            newDependency.NewPublisher(nil)(customer) 
+            //in above line, we construct the function and instantly call it...
         })
     }()
 }
