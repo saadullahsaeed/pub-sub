@@ -2,7 +2,7 @@
 
 _pub-sub_ is a simple Go library that allows you to:
 + use a Publish-Subscribe mechanism. 
-+ allows you to join Subscribers in a Publish-Subscribe pattern together so that a piece of code executes when they all have been notified (known also as a Join pattern) 
++ allows you to join Subscribers in a Publish-Subscribe pattern together so that a piece of code executes when they have been notified (known also as a Join pattern) 
 + allows you to construct a simplified DI engine with some clever coding on your part
 
 Go-routines and channels are used in the background, not queues.  
@@ -34,6 +34,8 @@ the actual type of the returned data is _map[string][]interface{}_, where each k
 + _Or_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish. 
 Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, the returned type is _map[string][]interface{}_. The reason is that a common function/pattern is used behind the scenes, 
 it also promotes a uniform interface.  
++ _WhenTimeout_ -- is a public function that allows you to construct a side Topic, which publishes messages whenever a base provided Topic is not
+updated with an event in a prescribed amount of time.
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
 
@@ -174,14 +176,16 @@ func Wire(configuration *Configuration) {
     //various Wire() 
     //methods in your stack. 
     go func () {
-        topic := <-events.And([]events.Topic{
+        topic := events.And([]events.Topic{
             configuration.Get(ADDRESS),
             conciguration.Get(PERSONAL_DETAILS)
         })
-
+        topic.NewSubscriber(func(rawResult interface{}) {
         //The objects need to cast... If Go had generics...
-        address := topic[ADDRESS][0].(*Address)
-        personalDetails := topic[PERSONAL_DETAILS][0].(*PersonalDetails)
+        //As mentioned above, AND returns map[string][]interface{} structs
+        result := rawResult.(map[string][]interface{})
+        address := result[ADDRESS][0].(*Address)
+        personalDetails := result[PERSONAL_DETAILS][0].(*PersonalDetails)
         //create the Customer instance just like normal...
         customer := &Customer { personalDetails, address }
         //...but add it back to the Configuration
@@ -189,15 +193,16 @@ func Wire(configuration *Configuration) {
         configuration.Add(CUSTOMER, newDependency)
         //alert all high-level objects that might 
         //await for a Customer instance that it is now available
-        newDependency.NewPublisher()(customer) 
+        newDependency.NewPublisher(nil)(customer) 
         //in above line, we construct the function and instantly call it...
+        })
     }()
 }
 ```
 
 Two very important notes:
-+ Note that Topics _block_ if there are no Subscribers listening or your code causes a deadlock. 
-You could use a WhenTimeout() wrapper on the returned Topic to be more safe, but WhenTimeout adds a Subscriber behind the scenes. 
++ Note that Topics _block_ if there are no Subscribers listening. Topics should not deadlock, as the crucial parts run - in the provided implementation - in 
+separate go-routines. You could use a WhenTimeout() wrapper on the returned Topic to be safe, if you suspect you might not be notified via a Publisher. 
 + Remember that Topics need to be *Closed*. You are using go-routines in the background which should be released when the Topics are no longer in usage. A pattern which you can implement is to 
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
