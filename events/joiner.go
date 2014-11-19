@@ -1,9 +1,6 @@
 package events
 
 import (
-    // "time"
-    // "fmt"
-    // "errors"
     "log"
 )
 
@@ -44,7 +41,7 @@ func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached 
     for _, topic := range inputTopics {
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
-    outputTopic := &topicWithAChannel{ NewTopic(name), newStates, currentState }
+    outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState }
     outputTopicPublisher := outputTopic.NewPublisher(nil)
     go andListen(newStates, currentState, outputTopicPublisher, releaseResultsWhenSizeReached)
     newStates<-map[string][]interface{} {}
@@ -100,25 +97,25 @@ func copyAside(original collectedResults) collectedResults {
     return mapCopy
 }
 
-type topicWithAChannel struct {
+type topicWithChannels struct {
     topic Topic
     in chan collectedResults
     out chan collectedResults
 }
 
-func (t *topicWithAChannel) NewPublisher(optionalCallback Publisher) Publisher {
+func (t *topicWithChannels) NewPublisher(optionalCallback Publisher) Publisher {
     return t.topic.NewPublisher(optionalCallback)
 }
 
-func (t *topicWithAChannel) NewSubscriber(subscriber Subscriber) {
+func (t *topicWithChannels) NewSubscriber(subscriber Subscriber) {
     t.topic.NewSubscriber(subscriber)
 }
 
-func (t *topicWithAChannel) String() string {
+func (t *topicWithChannels) String() string {
     return t.topic.String()
 }
 
-func (t *topicWithAChannel) Close() error {
+func (t *topicWithChannels) Close() error {
     close(t.in)
     close(t.out)
     return t.topic.Close()
