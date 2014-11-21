@@ -90,7 +90,7 @@ func (t *topic) run() {
                 //note: when channel is closed event == nil
                 if event != nil {
                     for _, subscriber := range t.subscribers {
-                        log.Println(fmt.Sprintf("%v <- %v", t.String(), event))
+                        log.Println(fmt.Sprintf("%v <- %v %T", t.String(), event, event))
                         //note: if subscriber sends something to a channel we don't want to be blocked.
                         go subscriber(event)
                     }
