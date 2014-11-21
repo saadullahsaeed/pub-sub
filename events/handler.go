@@ -5,6 +5,8 @@ package events
 
 import (
     "io"
+    "log"
+    "fmt"
 )
 /*
 The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. Publishers can be created by any Topic instance. 
@@ -88,6 +90,7 @@ func (t *topic) run() {
                 //note: when channel is closed event == nil
                 if event != nil {
                     for _, subscriber := range t.subscribers {
+                        log.Println(fmt.Sprintf("%v <- %v", t.String(), event))
                         //note: if subscriber sends something to a channel we don't want to be blocked.
                         go subscriber(event)
                     }
