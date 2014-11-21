@@ -60,9 +60,9 @@ func whichCollectsToACommonChannel(newStates, currentState chan collectedResults
             }
         }()
         state := <-currentState
-        log.Println(fmt.Sprintf(":",state))
+        log.Println(fmt.Sprintf(":%v",state))
         state[topicName] = append(state[topicName], input)
-        log.Println(fmt.Sprintf("::",state))
+        log.Println(fmt.Sprintf("::%v",state))
         newStates<-state
     }
 }
