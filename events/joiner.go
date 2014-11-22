@@ -5,8 +5,7 @@ import (
     // "fmt"
 )
 
-type collectedResults map[string][]interface{}
-type result map[string]interface{}
+type CollectedResults map[string][]interface{}
 
 /**
 Allows you to join several topics together into a single one, with an AND operator. This means, the output topic fires off an event whenever all
@@ -37,8 +36,8 @@ func Or(inputTopics []Topic, name string) Topic {
 }
 
 func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int) Topic {
-    newStates := make(chan collectedResults)
-    currentState := make(chan collectedResults)
+    newStates := make(chan CollectedResults)
+    currentState := make(chan CollectedResults)
     for _, topic := range inputTopics {
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
@@ -49,7 +48,7 @@ func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached 
     return outputTopic
 }
 
-func whichCollectsToACommonChannel(newStates, currentState chan collectedResults, topicName string) Subscriber {
+func whichCollectsToACommonChannel(newStates, currentState chan CollectedResults, topicName string) Subscriber {
     return func(input interface{}) {
         defer func() {
             if err := recover(); err != nil {
@@ -66,7 +65,7 @@ func whichCollectsToACommonChannel(newStates, currentState chan collectedResults
     }
 }
 
-func andListen(newStates, currentState chan collectedResults, publisher func(interface{}), releaseResultsWhenSizeReached int) {
+func andListen(newStates, currentState chan CollectedResults, publisher func(interface{}), releaseResultsWhenSizeReached int) {
     for ;; {
         newState := <-newStates
         currentSize := 0
@@ -87,8 +86,8 @@ func andListen(newStates, currentState chan collectedResults, publisher func(int
     }
 }
 
-func copyAside(original collectedResults) collectedResults {
-    mapCopy := collectedResults {}
+func copyAside(original CollectedResults) CollectedResults {
+    mapCopy := CollectedResults {}
     for key,value := range original {
         copiedValue := []interface{} {}
         for _, arrayValue := range value {
@@ -101,8 +100,8 @@ func copyAside(original collectedResults) collectedResults {
 
 type topicWithChannels struct {
     topic Topic
-    in chan collectedResults
-    out chan collectedResults
+    in chan CollectedResults
+    out chan CollectedResults
 }
 
 func (t *topicWithChannels) NewPublisher(optionalCallback Publisher) Publisher {
