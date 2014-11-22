@@ -5,6 +5,7 @@ import (
     // "fmt"
 )
 
+//A shorthand for map[string][]interface. And and Or topics return this structure in events.
 type CollectedResults map[string][]interface{}
 
 /**
