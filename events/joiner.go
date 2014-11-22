@@ -5,9 +5,6 @@ import (
     // "fmt"
 )
 
-//A shorthand for map[string][]interface. And and Or topics return this structure in events.
-type CollectedResults map[string][]interface{}
-
 /**
 Allows you to join several topics together into a single one, with an AND operator. This means, the output topic fires off an event whenever all
 provided Topics have had Publish events. 
@@ -37,8 +34,8 @@ func Or(inputTopics []Topic, name string) Topic {
 }
 
 func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int) Topic {
-    newStates := make(chan CollectedResults)
-    currentState := make(chan CollectedResults)
+    newStates := make(chan map[string][]interface{})
+    currentState := make(chan map[string][]interface{})
     for _, topic := range inputTopics {
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
@@ -49,7 +46,7 @@ func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached 
     return outputTopic
 }
 
-func whichCollectsToACommonChannel(newStates, currentState chan CollectedResults, topicName string) Subscriber {
+func whichCollectsToACommonChannel(newStates, currentState chan map[string][]interface{}, topicName string) Subscriber {
     return func(input interface{}) {
         defer func() {
             if err := recover(); err != nil {
@@ -66,7 +63,7 @@ func whichCollectsToACommonChannel(newStates, currentState chan CollectedResults
     }
 }
 
-func andListen(newStates, currentState chan CollectedResults, publisher func(interface{}), releaseResultsWhenSizeReached int) {
+func andListen(newStates, currentState chan map[string][]interface{}, publisher func(interface{}), releaseResultsWhenSizeReached int) {
     for ;; {
         newState := <-newStates
         currentSize := 0
@@ -87,8 +84,8 @@ func andListen(newStates, currentState chan CollectedResults, publisher func(int
     }
 }
 
-func copyAside(original CollectedResults) CollectedResults {
-    mapCopy := CollectedResults {}
+func copyAside(original map[string][]interface{}) map[string][]interface{} {
+    mapCopy := map[string][]interface{} {}
     for key,value := range original {
         copiedValue := []interface{} {}
         for _, arrayValue := range value {
@@ -101,8 +98,8 @@ func copyAside(original CollectedResults) CollectedResults {
 
 type topicWithChannels struct {
     topic Topic
-    in chan CollectedResults
-    out chan CollectedResults
+    in chan map[string][]interface{}
+    out chan map[string][]interface{}
 }
 
 func (t *topicWithChannels) NewPublisher(optionalCallback Publisher) Publisher {
