@@ -21,12 +21,10 @@ type temporaryTopic struct {
 }
 
 func (t *temporaryTopic) NewPublisher(optionalCallback func(interface{})) Publisher {
-    defer recoveryFromPanics()
     return t.topic.NewPublisher(optionalCallback)
 }
 
 func (t *temporaryTopic) NewSubscriber(subscriber Subscriber) {
-    defer recoveryFromPanics()
     t.topic.NewSubscriber(subscriber)
 }
 
@@ -35,7 +33,6 @@ func (t *temporaryTopic) String() string {
 }
 
 func (t *temporaryTopic) Close() error {
-    defer recoveryFromPanics()
     return t.topic.Close()
 }
 
@@ -44,10 +41,5 @@ func andCloseAfterTimeout(topic Topic, timeout time.Duration) {
     topic.Close()
 }
 
-func recoveryFromPanics() {
-    if err := recover(); err!=nil {
-        log.Println(fmt.Sprintf("Can't publish on temporary topic, perhaps because it's closed? %v", err))
-    }
-}
 
 
