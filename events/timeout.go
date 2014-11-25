@@ -38,7 +38,7 @@ type topicWithChannel struct {
     channel chan interface{}
 }
 
-func (t *topicWithChannel) NewPublisher(optionalCallback Publisher) Publisher {
+func (t *topicWithChannel) NewPublisher(optionalCallback func(interface{})) Publisher {
     return t.topic.NewPublisher(optionalCallback)
 }
 
@@ -54,3 +54,4 @@ func (t *topicWithChannel) Close() error {
     close(t.channel)
     return t.topic.Close()
 }
+

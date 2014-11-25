@@ -102,7 +102,7 @@ type topicWithChannels struct {
     out chan map[string][]interface{}
 }
 
-func (t *topicWithChannels) NewPublisher(optionalCallback Publisher) Publisher {
+func (t *topicWithChannels) NewPublisher(optionalCallback func(interface{})) Publisher {
     return t.topic.NewPublisher(optionalCallback)
 }
 

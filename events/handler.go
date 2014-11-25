@@ -4,8 +4,7 @@ See http://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern for a descrip
 package events
 
 import (
-    "io"
-    // "log"
+    "log"
     // "fmt"
 )
 /*
@@ -22,15 +21,17 @@ The implementation does not use this name, unless for informative reasons. Topic
 Topics can be closed -- this closes the Topic permanently.
 */
 type Topic interface {
-    //Allows you to create a new Publisher for a Topic. If you provide a callback (optional) here, it is guaranteed to be invoked during the publishing act.
+    //Allows you to create a new Publisher for a Topic. If you provide a callback (optional) here, it is guaranteed to be invoked during the publishing act. Depending on the 
+    //implementation it may be also used in a defer() section or called when the the publish failed. This may happen if Publishing is using on a Closed Topic. 
     //Publishing may occur in its own go-routine, and it's not guaranteed that the order you call Publishers is preserved (especially if you write to multiple Topics). 
-    NewPublisher(optionalCallback Publisher) Publisher
+    NewPublisher(optionalCallback func(interface{})) Publisher
     //Allows you to register an arbitrary Subscriber for events in the Topic
     //Subscribing may occur in its own go-routine, hence even if the act of subscribing 'blocks' (for example due to the waiting on channel), the remainders of the Topic still execute normally. 
     NewSubscriber(subscriber Subscriber)
     //Returns the topic's name
     String() string
-    io.Closer
+    //Close frees the underlying resources, and depending on the implementation may render the Topic unusable
+    Close() error
 }
 
 // ######## Implementations below ###########
@@ -42,13 +43,23 @@ type topic struct {
     events chan interface{}
     finish chan bool
     subscribers []Subscriber
+    closed bool
 }
 
-func (t *topic) NewPublisher(optionalCallback Publisher) Publisher {
+func (t *topic) NewPublisher(optionalCallback func(interface{})) Publisher {
     publisher := func(event interface{}) {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
         go func() {
+            defer func() {
+                if err := recover(); err != nil {
+                    if optionalCallback != nil {
+                        optionalCallback(err)
+                    } else {
+                        log.Println(err)
+                    }
+                }
+            }()
             t.events<- event
             //client will not know something is wrong (deadlock?) if they provide a dodgy callback
             if optionalCallback != nil {
@@ -65,9 +76,9 @@ func (t *topic) String() string {
     return t.name
 }
 func (t *topic) Close() error {
+    close(t.finish)
     close(t.newSubscribers)
     close(t.events)
-    close(t.finish)
     return nil
 }
 
@@ -78,15 +89,25 @@ func (t *topic) run() {
             t.subscribers = append(t.subscribers, <-t.newSubscribers)
         }
         for ;; {
+            if t.closed {
+                return
+            }
             select {
-            case <-t.finish:
+            case <-t.finish: //released when you close the channel
+                t.closed = true
                 return
             case newSubscriber:=<-t.newSubscribers:
+                if t.closed {
+                    return
+                }
                 //note: when channel is closed newSubscriber == nil
                 if newSubscriber != nil {
                     t.subscribers = append(t.subscribers, newSubscriber)
                 }
             case event:=<-t.events:
+                if t.closed {
+                    return
+                }
                 //note: when channel is closed event == nil
                 if event != nil {
                     for _, subscriber := range t.subscribers {
@@ -107,7 +128,7 @@ The optionalCallback (passed as a parameter to the Publisher) is invoked (in thi
 One of the tests to this library, shows an example how to 'synchronise' Publisher execution with the use of a channel: this adds overhead, though.
 */
 func NewTopic(topicName string) Topic {
-    bus := &topic { make(chan Subscriber), topicName, make(chan interface{}), make(chan bool), []Subscriber{} }
+    bus := &topic { make(chan Subscriber), topicName, make(chan interface{}), make(chan bool), []Subscriber{}, false }
     bus.run()
     return bus
 }
