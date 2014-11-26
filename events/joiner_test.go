@@ -68,6 +68,7 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic
     for _, publish := range fixture.Test {
         for name, message := range publish {
             //note: the above technique streamlines execution of Publishers...
+            //otherwise a publish message later in the Json might be executed earlier than a different one
             streamLine := make(chan bool)
             topics[name].NewPublisher(func(interface{}) { streamLine <- true })(message)
             <-streamLine
