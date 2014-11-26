@@ -4,7 +4,7 @@ GIT := github.com
 EXTERNAL_DEPENDENCIES := $(GIT)/tholowka/testing/assertions
 EXTERNAL_DEPENDENCY_DIRS := $(addprefix $(CURDIR)/, $(EXTERNAL_DEPENDENCIES))
 
-PACKAGES := events
+PACKAGES := events events/results
 
 .PHONY: a-quick-build a-unit-test-check
 

@@ -45,7 +45,7 @@ func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached 
     }
     outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState }
     outputTopicPublisher := outputTopic.NewPublisher(optionalCallback)
-    go andListen(newStates, currentState, outputTopicPublisher, releaseResultsWhenSizeReached)
+    go andListen(newStates, currentState, outputTopicPublisher, releaseResultsWhenSizeReached, optionalCallback)
     newStates<-map[string][]interface{} {}
     return outputTopic
 }
@@ -67,10 +67,14 @@ func whichCollectsToACommonChannel(newStates, currentState chan map[string][]int
     }
 }
 
-func andListen(newStates, currentState chan map[string][]interface{}, publisher func(interface{}), releaseResultsWhenSizeReached int) {
+func andListen(newStates, currentState chan map[string][]interface{},
+    publisher func(interface{}),
+    releaseResultsWhenSizeReached int,
+    optionalCallback func(interface{})) {
     for ;; {
         newState := <-newStates
         if len(newState) == 0 {
+            optionalCallback("Closing go-routine for closed channel.")
             return //this occurs when Close() is issued
         }
         currentSize := 0
@@ -79,9 +83,9 @@ func andListen(newStates, currentState chan map[string][]interface{}, publisher 
                 currentSize = currentSize + 1
             }
         }
-        // log.Println(fmt.Sprintf(":::%v",newState))
+        optionalCallback(newState)
         if currentSize == releaseResultsWhenSizeReached {
-            // log.Println("Bong")
+            optionalCallback("Reached top size")
             publisher(copyAside(newState))
             for topicName, _ := range newState {
                 delete(newState,topicName)
