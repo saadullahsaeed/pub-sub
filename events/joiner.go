@@ -66,6 +66,9 @@ func whichCollectsToACommonChannel(newStates, currentState chan map[string][]int
 func andListen(newStates, currentState chan map[string][]interface{}, publisher func(interface{}), releaseResultsWhenSizeReached int) {
     for ;; {
         newState := <-newStates
+        if newState == nil {
+            return //this occurs when Close() is issued
+        }
         currentSize := 0
         for _, array := range newState {
             if len(array) > 0 {
