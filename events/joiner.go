@@ -1,8 +1,8 @@
 package events
 
 import (
-    "log"
-    "fmt"
+    // "log"
+    // "fmt"
 )
 
 /**
@@ -69,24 +69,25 @@ func andListen(newStates, currentState chan map[string][]interface{},
     publisher func(interface{}), releaseResultsWhenSizeReached int) {
     for ;; {
         select {
+        case <-closeChannel:
+            return
         case newState := <-newStates:
+            //note: awaitEvent sends an empty 'state' at the beginning
             currentSize := 0
             for _, array := range newState {
                 if len(array) > 0 {
                     currentSize = currentSize + 1
                 }
             }
-            log.Println(fmt.Sprintf(":::%v",newState))
+            // log.Println(fmt.Sprintf(":::%v",newState))
             if currentSize == releaseResultsWhenSizeReached {
-                log.Println("Bong")
+                // log.Println("Bong")
                 publisher(copyAside(newState))
                 for topicName, _ := range newState {
                     delete(newState,topicName)
                 }
             }
             currentState<-newState
-        case <-closeChannel:
-            return
         }
     }
 }
@@ -123,9 +124,13 @@ func (t *topicWithChannels) String() string {
 }
 
 func (t *topicWithChannels) Close() error {
-    close(t.closeChannel)
-    close(t.in)
-    close(t.out)
-    return t.topic.Close()
+    result := t.topic.Close()
+    go func() {
+        t.closeChannel<-true
+        close(t.closeChannel)
+        close(t.in)
+        close(t.out)
+    }()
+    return result
 }
 

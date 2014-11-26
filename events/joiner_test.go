@@ -38,6 +38,18 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
     })
 }
 
+func Test_Close_DoesNot_CrashAnything(t *testing.T) {
+    //given
+    assert := assertions.New(t)
+    rants := NewTopic("rants")
+    streams := NewTopic("streams")
+    joint := And([]Topic { rants, streams }, "joint")
+    //then
+    assert.DoesNotThrow(func() {
+        joint.Close()
+    })
+}
+
 type fixture struct {
     Topics []string `json:"topics"`
     Test []map[string]string `json:"test"`
