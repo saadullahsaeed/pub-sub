@@ -1,8 +1,8 @@
 package events
 
 import (
-    // "log"
-    // "fmt"
+    "log"
+    "fmt"
 )
 
 /**
@@ -36,12 +36,13 @@ func Or(inputTopics []Topic, name string) Topic {
 func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int) Topic {
     newStates := make(chan map[string][]interface{})
     currentState := make(chan map[string][]interface{})
+    closeChannel := make(chan bool)
     for _, topic := range inputTopics {
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
-    outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState }
+    outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState, closeChannel }
     outputTopicPublisher := outputTopic.NewPublisher(nil)
-    go andListen(newStates, currentState, outputTopicPublisher, releaseResultsWhenSizeReached)
+    go andListen(newStates, currentState, closeChannel, outputTopicPublisher, releaseResultsWhenSizeReached)
     newStates<-map[string][]interface{} {}
     return outputTopic
 }
@@ -63,27 +64,30 @@ func whichCollectsToACommonChannel(newStates, currentState chan map[string][]int
     }
 }
 
-func andListen(newStates, currentState chan map[string][]interface{}, publisher func(interface{}), releaseResultsWhenSizeReached int) {
+func andListen(newStates, currentState chan map[string][]interface{},
+    closeChannel chan bool,
+    publisher func(interface{}), releaseResultsWhenSizeReached int) {
     for ;; {
-        newState := <-newStates
-        if len(newState) == 0 {
-            return //this occurs when Close() is issued
-        }
-        currentSize := 0
-        for _, array := range newState {
-            if len(array) > 0 {
-                currentSize = currentSize + 1
+        select {
+        case newState := <-newStates:
+            currentSize := 0
+            for _, array := range newState {
+                if len(array) > 0 {
+                    currentSize = currentSize + 1
+                }
             }
-        }
-        // log.Println(fmt.Sprintf(":::%v",newState))
-        if currentSize == releaseResultsWhenSizeReached {
-            // log.Println("Bong")
-            publisher(copyAside(newState))
-            for topicName, _ := range newState {
-                delete(newState,topicName)
+            log.Println(fmt.Sprintf(":::%v",newState))
+            if currentSize == releaseResultsWhenSizeReached {
+                log.Println("Bong")
+                publisher(copyAside(newState))
+                for topicName, _ := range newState {
+                    delete(newState,topicName)
+                }
             }
+            currentState<-newState
+        case <-closeChannel:
+            return
         }
-        currentState<-newState
     }
 }
 
@@ -103,6 +107,7 @@ type topicWithChannels struct {
     topic Topic
     in chan map[string][]interface{}
     out chan map[string][]interface{}
+    closeChannel chan bool
 }
 
 func (t *topicWithChannels) NewPublisher(optionalCallback func(interface{})) Publisher {
@@ -118,6 +123,7 @@ func (t *topicWithChannels) String() string {
 }
 
 func (t *topicWithChannels) Close() error {
+    close(t.closeChannel)
     close(t.in)
     close(t.out)
     return t.topic.Close()
