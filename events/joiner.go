@@ -13,9 +13,11 @@ The resulting Topic publishes events which are actually map[string][]interface{}
 array of all events captured so far within the Topic, in the order they have been received (note: not necessarily the order in which they have been sent).
 Do note, that the same kind of structure is passed as an event, when using the alternative to this function, called OR: as a conseuquence, you may use
 the same event handling code in both situations, and chain these topics together into longer pipes.
+
+The optionalCallback plays a similar role as in a typical Publisher, and allows you to trace events occuring in the returned topic. 
 */
-func And(inputTopics []Topic, name string) Topic {
-    return awaitEvent(inputTopics, name, len(inputTopics))
+func And(inputTopics []Topic, name string, optionalCallback func(interface{})) Topic {
+    return awaitEvent(inputTopics, name, len(inputTopics), optionalCallback)
 }
 
 /**
@@ -28,19 +30,21 @@ Contrary, to the AND function, OR operator is simpler: since events in the resul
 the returned structure could be simplified. Still, the writer of this library believes that having a uniform structure behind AND and OR is a higher value, 
 than the potential benefit gained by reducing the complexity here. As a consequence, handling code can be exchanged between AND and OR, and chained together
 into longer pipelines.
+
+The optionalCallback plays a similar role as in a typical Publisher, and allows you to trace events occuring in the returned topic. 
 */
-func Or(inputTopics []Topic, name string) Topic {
-    return awaitEvent(inputTopics, name, 1)
+func Or(inputTopics []Topic, name string, optionalCallback func(interface{})) Topic {
+    return awaitEvent(inputTopics, name, 1, optionalCallback)
 }
 
-func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int) Topic {
+func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int, optionalCallback func(interface{})) Topic {
     newStates := make(chan map[string][]interface{})
     currentState := make(chan map[string][]interface{})
     for _, topic := range inputTopics {
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
     outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState }
-    outputTopicPublisher := outputTopic.NewPublisher(nil)
+    outputTopicPublisher := outputTopic.NewPublisher(optionalCallback)
     go andListen(newStates, currentState, outputTopicPublisher, releaseResultsWhenSizeReached)
     newStates<-map[string][]interface{} {}
     return outputTopic
