@@ -38,6 +38,18 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
     })
 }
 
+func Test_Close_DoesNot_CrashAnything(t *testing.T) {
+    //given
+    assert := assertions.New(t)
+    rants := NewTopic("rants")
+    streams := NewTopic("streams")
+    joint := And([]Topic { rants, streams }, "joint")
+    //then
+    assert.DoesNotThrow(func() {
+        joint.Close()
+    })
+}
+
 type fixture struct {
     Topics []string `json:"topics"`
     Test []map[string]string `json:"test"`
@@ -55,7 +67,7 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func runFixtureAndOp(filepath string, topicOperation func([]Topic, string, func(interface{})) Topic) chan interface{} {
+func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}
@@ -64,7 +76,7 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string, func(
         topics[name] = NewTopic(name)
         topicsArray = append(topicsArray, topics[name])
     }
-    topic := topicOperation(topicsArray, "results", func(event interface{}) { log.Println(event) })
+    topic := topicOperation(topicsArray, "results")
     for _, publish := range fixture.Test {
         for name, message := range publish {
             //note: the above technique streamlines execution of Publishers...
