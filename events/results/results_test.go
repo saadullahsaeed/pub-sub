@@ -3,7 +3,7 @@ package results
 import (
     "testing"
     "github.com/tholowka/testing/assertions"
-    "log"
+    // "log"
 )
 
 const (
@@ -11,31 +11,29 @@ const (
 )
 
 func Test_ArrayBehaviour(t *testing.T) {
-    returnsAnError(New(aString()).First, t)
-    returnsAnError(New(aStringArray()).First, t)
-    doesNotReturnAnError(New(anArrayOfStrings()).First, t)
+    assert := assertions.New(t)
 
-    returnsAnError(New(aString()).Last, t)
-    returnsAnError(New(aStringArray()).Last, t)
-    doesNotReturnAnError(New(anArrayOfStrings()).Last, t)
+    assert.IsNotNil(New(aString()).First().Error()).
+        IsNotNil(New(aStringArray()).First().Error()).
+        IsNil(New(anArrayOfStrings()).First().Error())
+
+    assert.IsNotNil(New(aString()).Last().Error()).
+        IsNotNil(New(aStringArray()).Last().Error()).
+        IsNil(New(anArrayOfStrings()).Last().Error())
 }
 
 func Test_MapBehaviour(t *testing.T) {
-    returnsAnError(New(aString()).For(HELLO), t)
-    returnsAnError(New(aStringArray()).For(HELLO), t)
-    doesNotReturnAnError(New(aMapOfArrays()).For(HELLO), t)
+    assert := assertions.New(t)
+
+    assert.IsNotNil(New(aString()).For(HELLO).Error()).
+        IsNotNil(New(aStringArray()).For(HELLO).Error()).
+        IsNil(New(aMapOfArrays()).For(HELLO).Error())
 }
 
-func returnsAnError(method func() (interface{}, error), t *testing.T) {
-    result, err := method()
-    log.Println(err)
-    assertions.New(t).IsNil(result).IsNotNil(err)
-}
+func Test_Stacking(t *testing.T) {
+    assert := assertions.New(t)
 
-func doesNotReturnAnError(method func() (interface{}, error), t *testing.T) {
-    result, err := method()
-    log.Println(err)
-    assertions.New(t).IsNotNil(result).IsNil(err)
+    assert.IsNil(New(aMapOfArrays()).For(HELLO).First().Error())
 }
 
 func aString() interface{} {
@@ -51,6 +49,6 @@ func anArrayOfStrings() interface{} {
 }
 
 func aMapOfArrays() interface{} {
-    return map[string][]interface{} { HELLO : anArrayOfStrings() }
+    return map[string]interface{} { HELLO : anArrayOfStrings() }
 }
 
