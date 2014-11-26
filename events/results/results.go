@@ -28,13 +28,76 @@ func New(result interface{}) *Results {
     return &Results { result }
 }
 
+func (r *Results) FirstAndWrap() (*Results, error) {
+    return r.AtAndWrap(0)
+}
+
 func (r *Results) First() (interface{}, error) {
+    return r.At(0)
+}
+
+func (r *Results) LastAndWrap() (*Results, error) {
     switch r.result.(type) {
     case []interface{}:
-        return r.result.([]interface{})[0], nil
+        result := r.result.([]interface{})
+        if len(result) > 0 {
+            return New(result[len(result)-1]), nil
+        } else {
+            return nil, nil
+        }
     default:
     }
-    return nil, r.toError("This is not an array")
+    return nil, r.toError("This is not an array of interfaces")
+}
+
+func (r *Results) Last() (interface{}, error) {
+    result, err := r.LastAndWrap()
+    return r.cast(result, err)
+}
+
+func (r *Results) AtAndWrap(index int) (*Results, error) {
+    switch r.result.(type) {
+    case []interface{}:
+        return New(r.result.([]interface{})[index]), nil
+    default:
+    }
+    return nil, r.toError("This is not an array of interfaces")
+}
+
+func (r *Results) At(index int) (interface{}, error) {
+    result, err := r.AtAndWrap(index)
+    return r.cast(result, err)
+}
+
+func (r *Results) ForAndWrap(key string) (*Results, error) {
+    switch r.result.(type) {
+    case map[string]interface{}:
+        return New(r.result.(map[string]interface{})[key]), nil
+    default:
+    }
+    return nil, r.toError("This is not a map")
+
+}
+
+func (r *Results) For(key string) (interface{}, error) {
+    result, err := r.ForAndWrap(key)
+    return r.cast(result, err)
+}
+
+func (r *Results) Invoke(callback func(interface{})) {
+    callback(r.result)
+}
+
+func (r *Results) Get() interface{} {
+    return r.result
+}
+
+func (r *Results) cast(result *Results, err error) (interface{}, error) {
+    if result != nil {
+        return result.Get, err
+    } else {
+        return nil, err
+    }
 }
 
 func (r *Results) toError(message string) error {

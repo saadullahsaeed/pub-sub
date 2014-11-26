@@ -6,10 +6,24 @@ import (
     "log"
 )
 
-func TestThat_First_ThrowsErrors(t *testing.T) {
-    //given
-    returnsAnError(New(aString).First, t)
-    doesNotReturnAnError(New(aStringArray).First, t)
+const (
+    HELLO = "hello"
+)
+
+func Test_ArrayBehaviour(t *testing.T) {
+    returnsAnError(New(aString()).First, t)
+    returnsAnError(New(aStringArray()).First, t)
+    doesNotReturnAnError(New(anArrayOfStrings()).First, t)
+
+    returnsAnError(New(aString()).Last, t)
+    returnsAnError(New(aStringArray()).Last, t)
+    doesNotReturnAnError(New(anArrayOfStrings()).Last, t)
+}
+
+func Test_MapBehaviour(t *testing.T) {
+    returnsAnError(New(aString()).For(HELLO), t)
+    returnsAnError(New(aStringArray()).For(HELLO), t)
+    doesNotReturnAnError(New(aMapOfArrays()).For(HELLO), t)
 }
 
 func returnsAnError(method func() (interface{}, error), t *testing.T) {
@@ -32,6 +46,11 @@ func aStringArray() interface{} {
     return []string { "mingus", "ella" }
 }
 
-func anInt() interface{} {
-    return 0
+func anArrayOfStrings() interface{} {
+    return []interface{} { "mingus", "ella" }
 }
+
+func aMapOfArrays() interface{} {
+    return map[string][]interface{} { HELLO : anArrayOfStrings() }
+}
+
