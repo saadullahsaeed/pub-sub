@@ -21,19 +21,29 @@ func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) To
     timeouts := &topicWithChannel { NewTopic(timeoutTopicName), events, closeChannel }
     publisher := timeouts.NewPublisher(nil)
     andListen := func() {
+        var (
+            timeoutChan <-chan time.Time
+        )
+        timeoutChan = time.After(timeout)
         for ;; {
             select {
             case <-closeChannel:
                 return
             case <-events:
-                //ignore
-            case <-time.After(timeout):
+                timeoutChan = time.After(timeout)
+            case <-timeoutChan:
                 publisher(errors.New("Timeout on "+topic.String()))
             }
         }
     }
     go andListen()
     return timeouts
+}
+
+/**
+This a variant of WhenTimeout, which panics instead of sending errors on a Topic
+*/
+func MustFinishWithin(topic Topic, timeout time.Duration) {
 }
 
 type topicWithChannel struct {
