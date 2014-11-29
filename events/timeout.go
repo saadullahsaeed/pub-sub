@@ -43,7 +43,12 @@ func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) To
 /**
 This a variant of WhenTimeout, which panics instead of sending errors on a Topic
 */
-func MustFinishWithin(topic Topic, timeout time.Duration) {
+func MustPublishWithin(topic Topic, timeout time.Duration) {
+    errorTopic := WhenTimeout(topic, timeout, topic.String()+"-timeout-errors-collector")
+    errorTopic.NewSubscriber(func(err interface{}) {
+        go errorTopic.Close()
+        panic(err.(error))
+    })
 }
 
 type topicWithChannel struct {
