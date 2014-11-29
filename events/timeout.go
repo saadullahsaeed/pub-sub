@@ -13,19 +13,22 @@ The created topic publishes events which are in fact errors.
 */
 func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) Topic {
     events := make(chan interface{})
+    closeChannel := make(chan bool)
     subscriber := func(event interface{}) {
         events<-event
     }
     topic.NewSubscriber(subscriber)
-    timeouts := &topicWithChannel { NewTopic(timeoutTopicName), events }
+    timeouts := &topicWithChannel { NewTopic(timeoutTopicName), events, closeChannel }
     publisher := timeouts.NewPublisher(nil)
     andListen := func() {
         for ;; {
             select {
-                case <-events:
-                    //ignore
-                case <-time.After(timeout):
-                    publisher(errors.New("Timeout on "+topic.String()))
+            case <-closeChannel:
+                return
+            case <-events:
+                //ignore
+            case <-time.After(timeout):
+                publisher(errors.New("Timeout on "+topic.String()))
             }
         }
     }
@@ -36,6 +39,7 @@ func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) To
 type topicWithChannel struct {
     topic Topic
     channel chan interface{}
+    closeChannel chan bool
 }
 
 func (t *topicWithChannel) NewPublisher(optionalCallback func(interface{})) Publisher {
@@ -52,6 +56,7 @@ func (t *topicWithChannel) String() string {
 
 func (t *topicWithChannel) Close() error {
     close(t.channel)
+    close(t.closeChannel)
     return t.topic.Close()
 }
 
