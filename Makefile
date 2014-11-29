@@ -22,8 +22,6 @@ $(WORKDIR_LNK):
 $(EXTERNAL_DEPENDENCY_DIRS):
 	@export GOPATH=$(WORKDIR) && go get $(EXTERNAL_DEPENDENCIES)
 
-
-
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
 clean:
@@ -39,7 +37,7 @@ a-quick-build: available
 	@echo 'Finished a quick build'
 	@echo 'Compilation ended.'
 
-a-unit-test-check: available 
+a-quick-test: available 
 	@echo 'Running unit-tests'
 	@export GOPATH=$(WORKDIR) && go test $(PACKAGES)
 	@echo 'Finished unit-tests'
