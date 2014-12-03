@@ -43,7 +43,6 @@ type topic struct {
     events chan interface{}
     finish chan bool
     subscribers []Subscriber
-    closed bool
     logger func(...interface{})
 }
 
@@ -90,12 +89,13 @@ func (t *topic) Close() error {
 
 func (t *topic) run() {
     go func() {
+        closed := false
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
         if len(t.subscribers) == 0 {
             t.subscribers = append(t.subscribers, <-t.newSubscribers)
         }
         for ;; {
-            if t.closed {
+            if closed {
                 if t.logger != nil {
                     t.logger(fmt.Sprintf("%v closed.", t))
                 }
@@ -103,10 +103,10 @@ func (t *topic) run() {
             }
             select {
             case <-t.finish: //released when you close the channel
-                t.closed = true
+                closed = true
                 return
             case newSubscriber:=<-t.newSubscribers:
-                if t.closed {
+                if closed {
                     if t.logger != nil {
                         t.logger(fmt.Sprintf("%v closed.", t))
                     }
@@ -117,7 +117,7 @@ func (t *topic) run() {
                     t.subscribers = append(t.subscribers, newSubscriber)
                 }
             case event:=<-t.events:
-                if t.closed {
+                if closed {
                     if t.logger != nil {
                         t.logger(fmt.Sprintf("%v closed.", t))
                     }
@@ -150,7 +150,6 @@ func NewTopic(topicName string) Topic {
         make(chan interface{}),
         make(chan bool),
         []Subscriber{},
-        false,
         nil,
     }
     bus.run()
@@ -168,7 +167,6 @@ func NewTopicWithLogging(topicName string, loggingMethod func(...interface{})) T
         make(chan interface{}),
         make(chan bool),
         []Subscriber{},
-        false,
         loggingMethod,
     }
     bus.run()
