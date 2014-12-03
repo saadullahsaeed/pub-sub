@@ -20,8 +20,8 @@ type temporaryTopic struct {
     topic Topic
 }
 
-func (t *temporaryTopic) NewPublisher(optionalCallback func(interface{})) Publisher {
-    return t.topic.NewPublisher(optionalCallback)
+func (t *temporaryTopic) NewPublisher() Publisher {
+    return t.topic.NewPublisher()
 }
 
 func (t *temporaryTopic) NewSubscriber(subscriber Subscriber) {

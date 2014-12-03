@@ -14,7 +14,6 @@ array of all events captured so far within the Topic, in the order they have bee
 Do note, that the same kind of structure is passed as an event, when using the alternative to this function, called OR: as a conseuquence, you may use
 the same event handling code in both situations, and chain these topics together into longer pipes.
 
-The optionalCallback plays a similar role as in a typical Publisher, and allows you to trace events occuring in the returned topic. 
 */
 func And(inputTopics []Topic, name string) Topic {
     return awaitEvent(inputTopics, name, len(inputTopics))
@@ -31,7 +30,6 @@ the returned structure could be simplified. Still, the writer of this library be
 than the potential benefit gained by reducing the complexity here. As a consequence, handling code can be exchanged between AND and OR, and chained together
 into longer pipelines.
 
-The optionalCallback plays a similar role as in a typical Publisher, and allows you to trace events occuring in the returned topic. 
 */
 func Or(inputTopics []Topic, name string) Topic {
     return awaitEvent(inputTopics, name, 1)
@@ -45,7 +43,7 @@ func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached 
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
     }
     outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState, closeChannel }
-    outputTopicPublisher := outputTopic.NewPublisher(nil)
+    outputTopicPublisher := outputTopic.NewPublisher()
     go andListen(newStates, currentState, closeChannel, outputTopicPublisher, releaseResultsWhenSizeReached)
     newStates<-map[string][]interface{} {}
     return outputTopic
@@ -115,8 +113,8 @@ type topicWithChannels struct {
     closeChannel chan bool
 }
 
-func (t *topicWithChannels) NewPublisher(optionalCallback func(interface{})) Publisher {
-    return t.topic.NewPublisher(optionalCallback)
+func (t *topicWithChannels) NewPublisher() Publisher {
+    return t.topic.NewPublisher()
 }
 
 func (t *topicWithChannels) NewSubscriber(subscriber Subscriber) {

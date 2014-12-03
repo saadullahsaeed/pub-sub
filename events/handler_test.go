@@ -3,14 +3,15 @@ package events
 import (
     "testing"
     "github.com/tholowka/testing/assertions"
+    "log"
 )
 
 func TestThat_PubSub_Works(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopic("my-awesome-rant")
+    topic := NewTopicWithLogging("my-awesome-rant", log.Println)
     channel := make(chan string)
-    publisher := topic.NewPublisher(nil)
+    publisher := topic.NewPublisher()
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
@@ -25,10 +26,10 @@ func TestThat_PubSub_Works(t *testing.T) {
 func TestThat_MultiplePublishers_Work(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopic("my-awesome-rant")
+    topic := NewTopicWithLogging("my-awesome-rant", log.Println)
     channel := make(chan string)
-    firstPublisher := topic.NewPublisher(nil)
-    secondPublisher := topic.NewPublisher(nil)
+    firstPublisher := topic.NewPublisher()
+    secondPublisher := topic.NewPublisher()
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
@@ -45,9 +46,9 @@ func TestThat_MultiplePublishers_Work(t *testing.T) {
 func TestThat_MultipleSubscribers_Work(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopic("my-awesome-rant")
+    topic := NewTopicWithLogging("my-awesome-rant", log.Println)
     channel := make(chan string)
-    publisher := topic.NewPublisher(nil)
+    publisher := topic.NewPublisher()
     firstSubscriber := func(event interface{}) {
         channel<-"one"
     }
@@ -70,7 +71,7 @@ func Benchmark_Propagation(b *testing.B) {
     subscriber := func(interface{}) {}
     topic.NewSubscriber(subscriber)
     for n:=0; n<b.N;n++ {
-        topic.NewPublisher(nil)("Or is Keith J the best")
+        topic.NewPublisher()("Or is Keith J the best")
     }
     //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
 }

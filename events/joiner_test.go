@@ -41,8 +41,8 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
 func Test_Close_DoesNot_CrashAnything(t *testing.T) {
     //given
     assert := assertions.New(t)
-    rants := NewTopic("rants")
-    streams := NewTopic("streams")
+    rants := NewTopicWithLogging("rants", log.Println)
+    streams := NewTopicWithLogging("streams", log.Println)
     joint := And([]Topic { rants, streams }, "joint")
     //then
     assert.DoesNotThrow(func() {
@@ -73,16 +73,19 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic
     topicsArray := []Topic {}
     results := make(chan interface{})
     for _, name := range fixture.Topics {
-        topics[name] = NewTopic(name)
+        topics[name] = NewTopicWithLogging(name, log.Println)
         topicsArray = append(topicsArray, topics[name])
     }
     topic := topicOperation(topicsArray, "results")
     for _, publish := range fixture.Test {
         for name, message := range publish {
-            //note: the above technique streamlines execution of Publishers...
+            //note: the below technique streamlines execution of Publishers...
             //otherwise a publish message later in the Json might be executed earlier than a different one
             streamLine := make(chan bool)
-            topics[name].NewPublisher(func(interface{}) { streamLine <- true })(message)
+            topics[name].NewSubscriber(func(_ interface{}) {
+                streamLine<-true
+            })
+            topics[name].NewPublisher()(message)
             <-streamLine
         }
     }
@@ -101,6 +104,14 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic
             finalResult<-errors.New("No message received")
         }()
     }
+    go func() {
+        //not very effective, but we dont want to use TemporaryTopic here as not to mix dependencies
+        <-time.After(time.Second)
+        for _, partialTopic := range topicsArray {
+            partialTopic.Close()
+        }
+        topic.Close()
+    }()
     return finalResult
 }
 
