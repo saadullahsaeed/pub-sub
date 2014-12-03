@@ -24,8 +24,8 @@ func (t *temporaryTopic) NewPublisher() Publisher {
     return t.topic.NewPublisher()
 }
 
-func (t *temporaryTopic) NewSubscriber(subscriber Subscriber) {
-    t.topic.NewSubscriber(subscriber)
+func (t *temporaryTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
+    return t.topic.NewSubscriber(subscriber)
 }
 
 func (t *temporaryTopic) String() string {

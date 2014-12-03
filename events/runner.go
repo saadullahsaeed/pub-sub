@@ -16,16 +16,14 @@ func runTopicGoRoutine(newSubscribers chan Subscriber,
         events chan interface{},
         finish chan bool,
         subscribers []Subscriber,
-        logger func(...interface{})) <-chan bool {
+        logger func(...interface{})) {
 
-    topicIsReady := make(chan bool)
     go func() {
         closed := false
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
         if len(subscribers) == 0 {
             subscribers = append(subscribers, <-newSubscribers)
         }
-        close(topicIsReady)//alert listeners that go-routine is running
         for ;; {
             if closed {
                 if logger != nil {
@@ -69,5 +67,4 @@ func runTopicGoRoutine(newSubscribers chan Subscriber,
             }
         }
     }()
-    return topicIsReady
 }

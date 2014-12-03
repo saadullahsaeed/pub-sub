@@ -32,7 +32,8 @@ func (t *topic) NewPublisher() Publisher {
     }
     return publisher
 }
-func (t *topic) NewSubscriber(subscriber Subscriber) {
+func (t *topic) NewSubscriber(subscriber Subscriber) <-chan bool {
+    releaser := make(chan bool)
     go func() {
         defer func() {
             if err := recover(); err != nil {
@@ -43,7 +44,9 @@ func (t *topic) NewSubscriber(subscriber Subscriber) {
             }
         }()
         t.newSubscribers<-subscriber
+        close(releaser) //this releases awaiting listeners
     }()
+    return releaser
 }
 func (t *topic) String() string {
     return t.name
@@ -69,7 +72,7 @@ func NewTopic(topicName string) Topic {
         []Subscriber{},
         nil,
     }
-    <-runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
+    runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
 }
 
@@ -86,6 +89,6 @@ func NewTopicWithLogging(topicName string, loggingMethod func(...interface{})) T
         []Subscriber{},
         loggingMethod,
     }
-    <-runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
+    runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
 }

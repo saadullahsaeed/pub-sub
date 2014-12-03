@@ -16,7 +16,8 @@ func (t *timeouter) NewPublisher() Publisher {
     return nil
 }
 
-func (t *timeouter) NewSubscriber(subscriber Subscriber) {
+func (t *timeouter) NewSubscriber(subscriber Subscriber) <-chan bool {
+    return nil
 }
 
 func (t *timeouter) String() string {
@@ -72,8 +73,8 @@ func (t *timeoutingTopic) NewPublisher() Publisher {
     return t.topic.NewPublisher()
 }
 
-func (t *timeoutingTopic) NewSubscriber(subscriber Subscriber) {
-    t.topic.NewSubscriber(subscriber)
+func (t *timeoutingTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
+    return t.topic.NewSubscriber(subscriber)
 }
 
 func (t *timeoutingTopic) String() string {

@@ -117,8 +117,8 @@ func (t *topicWithChannels) NewPublisher() Publisher {
     return t.topic.NewPublisher()
 }
 
-func (t *topicWithChannels) NewSubscriber(subscriber Subscriber) {
-    t.topic.NewSubscriber(subscriber)
+func (t *topicWithChannels) NewSubscriber(subscriber Subscriber) <-chan bool {
+    return t.topic.NewSubscriber(subscriber)
 }
 
 func (t *topicWithChannels) String() string {

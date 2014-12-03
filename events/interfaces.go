@@ -22,8 +22,8 @@ type Topic interface {
     //Publishing may occur in its own go-routine, and it's not guaranteed that the order you call Publishers is preserved (especially if you write to multiple Topics). 
     NewPublisher() Publisher
     //Allows you to register an arbitrary Subscriber for events in the Topic
-    //Subscribing may occur in its own go-routine, hence even if the act of subscribing 'blocks' (for example due to the waiting on channel), the remainders of the Topic still execute normally. 
-    NewSubscriber(subscriber Subscriber)
+    //Subscribing may occur in its own go-routine, hence even if the act of subscribing 'blocks' (for example due to the waiting on channel), the remainders of the Topic still execute normally. You can use the returned channel to await for the event, that the underlying Topic has picked up the Subscriber. This pattern may be important in applications where a Publish/Subscribe order is important, and you want to make sure the Publishing occurs after Subscribers have been picked up. 
+    NewSubscriber(subscriber Subscriber) <-chan bool
     //Returns the topic's name
     String() string
     //Close frees the underlying resources, and depending on the implementation may render the Topic unusable
