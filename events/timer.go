@@ -2,10 +2,16 @@ package events
 
 import (
     "time"
-    "fmt"
+    // "fmt"
     // "errors"
 )
 
+/**
+Produces a Topic which encapsulates a Go <-time.After() timer. 
+
+Publishing to the Topic causes a Timer reset, but the event itself is otherwise ignored.
+
+*/
 func NewTimerTopic(topicName string, timeout time.Duration) Topic {
     bus := &timer {
         topic {
@@ -20,15 +26,9 @@ func NewTimerTopic(topicName string, timeout time.Duration) Topic {
         },
         timeout,
     }
-    runTimeoutingTopicGoRoutine(bus.newSubscribers,
-        bus.name,
-        bus.events,
-        bus.finish,
-        bus.subscribers,
-        bus.loggingMethod,
-        timeout)
+    andRunLoop := buildTimerLoop(&(bus.topicSpec), bus.timeout)
+    go andRunLoop()
     return bus
-
 }
 
 type timer struct {
@@ -50,77 +50,6 @@ func (t *timer) String() string {
 
 func (t *timer) Close() error {
     return t.Close()
-}
-/**
-This function lies at the core of any Topic.
-
-Essentially this is a state-machine, in which the provided channels change the state.
-Starting process should await on the returned channel so that possibility of a deadlock is reduced (for example: an event added via
-a Publisher and the subscribers have not been set -- a common scenario)
-*/
-func runTimeoutingTopicGoRoutine(newSubscribers <-chan Subscriber,
-        name string,
-        events <-chan interface{},
-        finish <-chan bool,
-        subscribers []Subscriber,
-        logger func(...interface{}),
-        timeout time.Duration) {
-
-    go func() {
-        closed := false
-        timer := time.After(timeout)
-        //note: line below is to make sure that subscribing occurs before ANY event publishing.
-        if len(subscribers) == 0 {
-            subscribers = append(subscribers, <-newSubscribers)
-        }
-        for ;; {
-            if closed {
-                if logger != nil {
-                    logger(fmt.Sprintf("%v closed.", name))
-                }
-                return
-            }
-            select {
-            case <-finish: //released when you close the channel
-                closed = true
-                return
-            case newSubscriber:=<-newSubscribers:
-                if closed {
-                    if logger != nil {
-                        logger(fmt.Sprintf("%v closed.", name))
-                    }
-                    return
-                }
-                //note: when channel is closed newSubscriber == nil
-                if newSubscriber != nil {
-                    subscribers = append(subscribers, newSubscriber)
-                }
-            case current:=<-timer:
-                if closed {
-                    if logger != nil {
-                        logger(fmt.Sprintf("%v closed.", name))
-                    }
-                    return
-                }
-                //note: when channel is closed event == nil
-                if logger != nil {
-                    logger(fmt.Sprintf("%v notifying %v subscribers about timeout (%v).", name, len(subscribers), current))
-                }
-                for _, subscriber := range subscribers {
-                    //note: if subscriber sends something to a channel we don't want to be blocked.
-                    go subscriber(current)
-                }
-            case <-events:
-                if closed {
-                    if logger != nil {
-                        logger(fmt.Sprintf("%v closed.", name))
-                    }
-                    return
-                }
-                timer = time.After(timeout)//resets timer
-            }
-        }
-    }()
 }
 /**
 Allows you to put an artificial timeout on a Topic, and send errors to a designated Topic whenever an event does not arrive in 
