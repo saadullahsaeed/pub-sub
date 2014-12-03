@@ -11,10 +11,10 @@ Essentially this is a state-machine, in which the provided channels change the s
 Starting process should await on the returned channel so that possibility of a deadlock is reduced (for example: an event added via
 a Publisher and the subscribers have not been set -- a common scenario)
 */
-func runTopicGoRoutine(newSubscribers chan Subscriber,
+func runTopicGoRoutine(newSubscribers <-chan Subscriber,
         name string,
-        events chan interface{},
-        finish chan bool,
+        events <-chan interface{},
+        finish <-chan bool,
         subscribers []Subscriber,
         logger func(...interface{})) {
 

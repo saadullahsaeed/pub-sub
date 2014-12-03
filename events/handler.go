@@ -5,13 +5,17 @@ import (
     "fmt"
 )
 
-type topic struct {
+type topicSpec struct {
     newSubscribers chan Subscriber
     name string
     events chan interface{}
     finish chan bool
     subscribers []Subscriber
     logger func(...interface{})
+}
+
+type topic struct {
+    topicSpec
 }
 
 func (t *topic) NewPublisher() Publisher {
@@ -65,12 +69,14 @@ Likewise, the order in which Subscribers are called can't be fully guaranteed.
 */
 func NewTopic(topicName string) Topic {
     bus := &topic {
-        make(chan Subscriber),
-        topicName,
-        make(chan interface{}),
-        make(chan bool),
-        []Subscriber{},
-        nil,
+        topicSpec {
+            make(chan Subscriber),
+            topicName,
+            make(chan interface{}),
+            make(chan bool),
+            []Subscriber{},
+            nil,
+        },
     }
     runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
@@ -82,12 +88,14 @@ is useful for tests.
 */
 func NewTopicWithLogging(topicName string, loggingMethod func(...interface{})) Topic {
     bus := &topic {
-        make(chan Subscriber),
-        topicName,
-        make(chan interface{}),
-        make(chan bool),
-        []Subscriber{},
-        loggingMethod,
+        topicSpec {
+            make(chan Subscriber),
+            topicName,
+            make(chan interface{}),
+            make(chan bool),
+            []Subscriber{},
+            loggingMethod,
+        },
     }
     runTopicGoRoutine(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
