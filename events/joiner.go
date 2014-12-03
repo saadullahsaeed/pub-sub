@@ -81,9 +81,7 @@ func andListen(newStates, currentState chan map[string][]interface{},
                     currentSize = currentSize + 1
                 }
             }
-            // log.Println(fmt.Sprintf(":::%v",newState))
             if currentSize == releaseResultsWhenSizeReached {
-                // log.Println("Bong")
                 publisher(copyAside(newState))
                 for topicName, _ := range newState {
                     delete(newState,topicName)

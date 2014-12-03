@@ -7,7 +7,7 @@ import (
 )
 
 func NewTimerTopic(topicName string, timeout time.Duration) Topic {
-    bus := &timeouter {
+    bus := &timer {
         topic {
             topicSpec {
                 make(chan Subscriber),
@@ -20,36 +20,36 @@ func NewTimerTopic(topicName string, timeout time.Duration) Topic {
         },
         timeout,
     }
-    runTimeoutingTopicGoRoutine(bus.internal.newSubscribers,
-        bus.internal.name,
-        bus.internal.events,
-        bus.internal.finish,
-        bus.internal.subscribers,
-        bus.internal.logger,
+    runTimeoutingTopicGoRoutine(bus.newSubscribers,
+        bus.name,
+        bus.events,
+        bus.finish,
+        bus.subscribers,
+        bus.loggingMethod,
         timeout)
     return bus
 
 }
 
-type timeouter struct {
-    internal topic
+type timer struct {
+    topic
     timeout time.Duration
 }
 
-func (t *timeouter) NewPublisher() Publisher {
-    return t.internal.NewPublisher()
+func (t *timer) NewPublisher() Publisher {
+    return t.NewPublisher()
 }
 
-func (t *timeouter) NewSubscriber(subscriber Subscriber) <-chan bool {
-    return t.internal.NewSubscriber(subscriber)
+func (t *timer) NewSubscriber(subscriber Subscriber) <-chan bool {
+    return t.NewSubscriber(subscriber)
 }
 
-func (t *timeouter) String() string {
-    return t.internal.String()
+func (t *timer) String() string {
+    return t.String()
 }
 
-func (t *timeouter) Close() error {
-    return t.internal.Close()
+func (t *timer) Close() error {
+    return t.Close()
 }
 /**
 This function lies at the core of any Topic.
@@ -136,57 +136,6 @@ func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) To
     }
     topic.NewSubscriber(subscriber)
     return timerTopic
-    // events := make(chan interface{})
-    // closeChannel := make(chan bool)
-    // timeouts := &timeoutingTopic { NewTopic(timeoutTopicName), events, closeChannel }
-    // publisher := timeouts.NewPublisher()
-    //
-    // subscriber := func(event interface{}) {
-    //     events<-event
-    // }
-    // topic.NewSubscriber(subscriber)
-    // andListen := func() {
-    //     var (
-    //         timeoutChan <-chan time.Time
-    //     )
-    //     timeoutChan = time.After(timeout)
-    //     for ;; {
-    //         select {
-    //         case <-closeChannel:
-    //             return
-    //         case <-events:
-    //             timeoutChan = time.After(timeout)
-    //         case <-timeoutChan:
-    //             publisher(errors.New("Timeout on "+topic.String()))
-    //         }
-    //     }
-    // }
-    // go andListen()
-    // return timeouts
-}
-
-type timeoutingTopic struct {
-    topic Topic
-    channel chan interface{}
-    closeChannel chan bool
-}
-
-func (t *timeoutingTopic) NewPublisher() Publisher {
-    return t.topic.NewPublisher()
-}
-
-func (t *timeoutingTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
-    return t.topic.NewSubscriber(subscriber)
-}
-
-func (t *timeoutingTopic) String() string {
-    return t.topic.String()
-}
-
-func (t *timeoutingTopic) Close() error {
-    close(t.channel)
-    close(t.closeChannel)
-    return t.topic.Close()
 }
 
 /**
