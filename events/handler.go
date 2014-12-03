@@ -87,48 +87,54 @@ func (t *topic) Close() error {
     return nil
 }
 
-func (t *topic) run() {
+func run(newSubscribers chan Subscriber,
+        name string,
+        events chan interface{},
+        finish chan bool,
+        subscribers []Subscriber,
+        logger func(...interface{})) {
+
     go func() {
         closed := false
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
-        if len(t.subscribers) == 0 {
-            t.subscribers = append(t.subscribers, <-t.newSubscribers)
+        if len(subscribers) == 0 {
+            subscribers = append(subscribers, <-newSubscribers)
         }
         for ;; {
             if closed {
-                if t.logger != nil {
-                    t.logger(fmt.Sprintf("%v closed.", t))
+                if logger != nil {
+                    logger(fmt.Sprintf("%v closed.", name))
                 }
                 return
             }
             select {
-            case <-t.finish: //released when you close the channel
+            case <-finish: //released when you close the channel
                 closed = true
                 return
-            case newSubscriber:=<-t.newSubscribers:
+            case newSubscriber:=<-newSubscribers:
                 if closed {
-                    if t.logger != nil {
-                        t.logger(fmt.Sprintf("%v closed.", t))
+                    if logger != nil {
+                        logger(fmt.Sprintf("%v closed.", name))
                     }
                     return
                 }
                 //note: when channel is closed newSubscriber == nil
                 if newSubscriber != nil {
-                    t.subscribers = append(t.subscribers, newSubscriber)
+                    subscribers = append(subscribers, newSubscriber)
                 }
-            case event:=<-t.events:
+            case event:=<-events:
                 if closed {
-                    if t.logger != nil {
-                        t.logger(fmt.Sprintf("%v closed.", t))
+                    if logger != nil {
+                        logger(fmt.Sprintf("%v closed.", name))
                     }
                     return
                 }
                 //note: when channel is closed event == nil
                 if event != nil {
-                    if t.logger != nil {
-                        t.logger(fmt.Sprintf("%v notifying %v subscribers about %v.", t, len(t.subscribers), event))
+                    if logger != nil {
+                        logger(fmt.Sprintf("%v notifying %v subscribers about %v.", name, len(subscribers), event))
                     }
-                    for _, subscriber := range t.subscribers {
+                    for _, subscriber := range subscribers {
                         // log.Println(fmt.Sprintf("%v <- %v %T", t.String(), event, event))
                         //note: if subscriber sends something to a channel we don't want to be blocked.
                         go subscriber(event)
@@ -152,7 +158,7 @@ func NewTopic(topicName string) Topic {
         []Subscriber{},
         nil,
     }
-    bus.run()
+    run(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
 }
 
@@ -169,6 +175,6 @@ func NewTopicWithLogging(topicName string, loggingMethod func(...interface{})) T
         []Subscriber{},
         loggingMethod,
     }
-    bus.run()
+    run(bus.newSubscribers, bus.name, bus.events, bus.finish, bus.subscribers, nil)
     return bus
 }
