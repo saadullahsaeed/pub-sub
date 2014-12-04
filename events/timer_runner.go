@@ -9,7 +9,7 @@ This function lies at the core of the Timer implementation of a Topic.
 
 Essentially this is a state-machine, in which the provided channels change the state.
 */
-func buildTimerLoop(spec *topicSpec, timeout time.Duration) func() {
+func buildTickerLoop(spec *topicSpec, timeout time.Duration) func() {
     return func() {
         closed := false
         timer := time.NewTicker(timeout)

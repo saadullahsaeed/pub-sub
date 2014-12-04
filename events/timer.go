@@ -7,13 +7,13 @@ import (
 )
 
 /**
-Produces a Topic which encapsulates a Go <-time.After() timer. 
+Produces a Topic which encapsulates a Go <-time.NewTicker(). 
 
-Publishing to the Topic causes a Timer reset, but the event itself is otherwise ignored.
+Publishing to the Topic causes a ticker reset, but the event itself is otherwise ignored.
 
 */
-func NewTimerTopic(topicName string, timeout time.Duration) Topic {
-    bus := &timer {
+func NewTickerTopic(topicName string, timeout time.Duration) Topic {
+    bus := &ticker {
         &topicSpec {
             make(chan Subscriber),
             topicName,
@@ -24,13 +24,13 @@ func NewTimerTopic(topicName string, timeout time.Duration) Topic {
         },
         timeout,
     }
-    andRunLoop := buildTimerLoop(bus.spec, bus.timeout)
+    andRunLoop := buildTickerLoop(bus.spec, bus.timeout)
     go andRunLoop()
     return bus
 }
 
-func NewTimerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(...interface{})) Topic {
-    bus := &timer {
+func NewTickerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(...interface{})) Topic {
+    bus := &ticker {
             &topicSpec {
                 make(chan Subscriber),
                 topicName,
@@ -41,29 +41,29 @@ func NewTimerTopicWithLogging(topicName string, timeout time.Duration, loggingMe
         },
         timeout,
     }
-    andRunLoop := buildTimerLoop(bus.spec, bus.timeout)
+    andRunLoop := buildTickerLoop(bus.spec, bus.timeout)
     go andRunLoop()
     return bus
 }
 
-type timer struct {
+type ticker struct {
     spec *topicSpec
     timeout time.Duration
 }
 
-func (t *timer) NewPublisher() Publisher {
+func (t *ticker) NewPublisher() Publisher {
     return t.spec.NewPublisher()
 }
 
-func (t *timer) NewSubscriber(subscriber Subscriber) <-chan bool {
+func (t *ticker) NewSubscriber(subscriber Subscriber) <-chan bool {
     return t.spec.NewSubscriber(subscriber)
 }
 
-func (t *timer) String() string {
+func (t *ticker) String() string {
     return t.spec.String()
 }
 
-func (t *timer) Close() error {
+func (t *ticker) Close() error {
     return t.spec.Close()
 }
 /**
@@ -72,14 +72,21 @@ a specified amount of time.
 
 The created topic publishes events which are in fact errors. 
 */
-func WhenTimeout(topic Topic, timeout time.Duration, timeoutTopicName string) Topic {
-    timerTopic := NewTimerTopic(timeoutTopicName, timeout)
-    timingPublisher := timerTopic.NewPublisher()
+func WhenTimeout(topic Topic, timeout time.Duration, tickerTopicName string) Topic {
+    return whenTimeout(topic, NewTickerTopic(tickerTopicName, timeout))
+}
+
+func WhenTimeoutWithLogging(topic Topic, timeout time.Duration, tickerTopicName string, loggingMethod func(...interface{})) Topic {
+    return whenTimeout(topic, NewTickerTopicWithLogging(tickerTopicName, timeout, loggingMethod))
+}
+
+func whenTimeout(topic Topic, tickerTopic Topic) Topic {
+    tickerPublisher := tickerTopic.NewPublisher()
     subscriber := func(event interface{}) {
-        timingPublisher(event)
+        tickerPublisher(event)
     }
     topic.NewSubscriber(subscriber)
-    return timerTopic
+    return tickerTopic
 }
 
 /**
