@@ -42,6 +42,11 @@ a-quick-test: available
 	@export GOPATH=$(WORKDIR) && go test $(PACKAGES)
 	@echo 'Finished unit-tests'
 
+a-single-test: available
+	@echo 'Running unit-tests'
+	@export GOPATH=$(WORKDIR) && go test -run TestThat_Timer* $(PACKAGES)
+	@echo 'Finished unit-tests'
+
 a-benchmark-check: available 
 	@echo 'Running benchmark'
 	@export GOPATH=$(WORKDIR) && go test -bench=. $(PACKAGES)
