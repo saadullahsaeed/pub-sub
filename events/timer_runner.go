@@ -12,6 +12,7 @@ Essentially this is a state-machine, in which the provided channels change the s
 func buildTimerLoop(spec *topicSpec, timeout time.Duration) func() {
     return func() {
         closed := false
+        optionallyLog(spec, "started")
         timer := time.After(timeout)
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
         if len(spec.subscribers) == 0 {

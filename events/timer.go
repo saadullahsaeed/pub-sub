@@ -31,6 +31,25 @@ func NewTimerTopic(topicName string, timeout time.Duration) Topic {
     return bus
 }
 
+func NewTimerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(...interface{})) Topic {
+    bus := &timer {
+        topic {
+            topicSpec {
+                make(chan Subscriber),
+                topicName,
+                make(chan interface{}),
+                make(chan bool),
+                []Subscriber{},
+                loggingMethod,
+            },
+        },
+        timeout,
+    }
+    andRunLoop := buildTimerLoop(&(bus.topicSpec), bus.timeout)
+    go andRunLoop()
+    return bus
+}
+
 type timer struct {
     topic
     timeout time.Duration

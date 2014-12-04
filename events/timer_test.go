@@ -12,9 +12,9 @@ func TestThat_TimerTopic_Pings(t *testing.T) {
 
     timer := NewTimerTopic("timer", time.Duration(100)*time.Millisecond)
     <-timer.NewSubscriber(func(interface{}) {
-        numberOfPings = numberOfPings+1
+         numberOfPings = numberOfPings+1
     })
-    <-time.After(time.Duration(1)*time.Second)
+    // <-time.After(time.Duration(1)*time.Second)
     assert.IsTrue(numberOfPings>8)
 }
 
