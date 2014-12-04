@@ -14,61 +14,57 @@ Publishing to the Topic causes a Timer reset, but the event itself is otherwise 
 */
 func NewTimerTopic(topicName string, timeout time.Duration) Topic {
     bus := &timer {
-        topic {
-            topicSpec {
-                make(chan Subscriber),
-                topicName,
-                make(chan interface{}),
-                make(chan bool),
-                []Subscriber{},
-                nil,
-            },
+        &topicSpec {
+            make(chan Subscriber),
+            topicName,
+            make(chan interface{}),
+            make(chan bool),
+            []Subscriber{},
+            nil,
         },
         timeout,
     }
-    andRunLoop := buildTimerLoop(&(bus.topicSpec), bus.timeout)
+    andRunLoop := buildTimerLoop(bus.spec, bus.timeout)
     go andRunLoop()
     return bus
 }
 
 func NewTimerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(...interface{})) Topic {
     bus := &timer {
-        topic {
-            topicSpec {
+            &topicSpec {
                 make(chan Subscriber),
                 topicName,
                 make(chan interface{}),
                 make(chan bool),
                 []Subscriber{},
                 loggingMethod,
-            },
         },
         timeout,
     }
-    andRunLoop := buildTimerLoop(&(bus.topicSpec), bus.timeout)
+    andRunLoop := buildTimerLoop(bus.spec, bus.timeout)
     go andRunLoop()
     return bus
 }
 
 type timer struct {
-    topic
+    spec *topicSpec
     timeout time.Duration
 }
 
 func (t *timer) NewPublisher() Publisher {
-    return t.NewPublisher()
+    return t.spec.NewPublisher()
 }
 
 func (t *timer) NewSubscriber(subscriber Subscriber) <-chan bool {
-    return t.NewSubscriber(subscriber)
+    return t.spec.NewSubscriber(subscriber)
 }
 
 func (t *timer) String() string {
-    return t.String()
+    return t.spec.String()
 }
 
 func (t *timer) Close() error {
-    return t.Close()
+    return t.spec.Close()
 }
 /**
 Allows you to put an artificial timeout on a Topic, and send errors to a designated Topic whenever an event does not arrive in 

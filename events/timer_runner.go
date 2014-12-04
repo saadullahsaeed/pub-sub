@@ -12,27 +12,30 @@ Essentially this is a state-machine, in which the provided channels change the s
 func buildTimerLoop(spec *topicSpec, timeout time.Duration) func() {
     return func() {
         closed := false
-        optionallyLog(spec, "started")
-        timer := time.After(timeout)
+        timer := time.NewTicker(timeout)
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
         if len(spec.subscribers) == 0 {
             spec.subscribers = append(spec.subscribers, <-spec.newSubscribers)
         }
+        optionallyLog(spec, "started")
         for ;; {
             select {
             case <-spec.finish: //released when you close the channel
+                timer.Stop()
                 closed = true
+                optionallyLog(spec, "closed")
                 return
             case newSubscriber:=<-spec.newSubscribers:
                 if closed {
                     optionallyLog(spec, "closed")
                     return
                 }
+                optionallyLog(spec, "adding subscriber")
                 //note: when channel is closed newSubscriber == nil
                 if newSubscriber != nil {
                     spec.subscribers = append(spec.subscribers, newSubscriber)
                 }
-            case current:=<-timer:
+            case current:=<-timer.C:
                 if closed {
                     optionallyLog(spec, "closed")
                     return
@@ -48,7 +51,8 @@ func buildTimerLoop(spec *topicSpec, timeout time.Duration) func() {
                     optionallyLog(spec, "closed")
                     return
                 }
-                timer = time.After(timeout)//resets timer
+                timer.Stop()
+                timer = time.NewTicker(timeout)//resets timer
             }
         }
     }

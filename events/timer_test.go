@@ -4,17 +4,20 @@ import (
     "testing"
     "github.com/tholowka/testing/assertions"
     "time"
+    "log"
 )
 
 func TestThat_TimerTopic_Pings(t *testing.T) {
     numberOfPings := 0
+    duration := 100
     assert := assertions.New(t)
 
-    timer := NewTimerTopic("timer", time.Duration(100)*time.Millisecond)
+    timer := NewTimerTopicWithLogging("timer", time.Duration(duration)*time.Millisecond, log.Println)
     <-timer.NewSubscriber(func(interface{}) {
          numberOfPings = numberOfPings+1
     })
-    // <-time.After(time.Duration(1)*time.Second)
+    <-time.After(time.Duration(10*duration)*time.Millisecond)
+    // assert.IsTrue(timer != nil)
     assert.IsTrue(numberOfPings>8)
 }
 

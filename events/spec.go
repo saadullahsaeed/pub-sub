@@ -17,6 +17,35 @@ func (spec *topicSpec) String() string {
     return spec.name
 }
 
+func (spec *topicSpec) NewPublisher() Publisher {
+    publisher := func(event interface{}) {
+        //it's crucial this is in a go-routine: running 2+ Publishers in the same
+        //go-routine causes a deadlock without this.
+        go func() {
+            defer optionallyLogPanics(spec, "topic probably closed, error in NewPublisher()")
+            spec.events<- event
+        }()
+    }
+    return publisher
+}
+
+func (spec *topicSpec) NewSubscriber(subscriber Subscriber) <-chan bool {
+    releaser := make(chan bool)
+    go func() {
+        defer optionallyLogPanics(spec, "topic probably closed, error in NewSubscriber()")
+        spec.newSubscribers<-subscriber
+        close(releaser) //this releases awaiting listeners
+    }()
+    return releaser
+}
+
+func (spec *topicSpec) Close() error {
+    close(spec.finish)
+    close(spec.newSubscribers)
+    close(spec.events)
+    return nil
+}
+
 func optionallyLogPanics(spec *topicSpec, message string) {
     if err := recover(); err != nil {
         if spec.loggingMethod != nil {
