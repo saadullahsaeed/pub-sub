@@ -27,7 +27,6 @@ func TestThat_WhenTimeout_Works(t *testing.T) {
     delay := 100
     assert := assertions.New(t)
     topic := NewTopic("a-game-to-play")
-    publisher := topic.NewPublisher()
     waitForAnswer := make(chan bool)
     //when
     errorTopic := WhenTimeoutWithLogging(topic, time.Duration(delay)*time.Millisecond, "timeouts-are-working", log.Println)
@@ -39,10 +38,6 @@ func TestThat_WhenTimeout_Works(t *testing.T) {
             waitForAnswer<-false
         }
     })
-    go func() {
-        <-time.After(time.Duration(2*delay)*time.Millisecond)
-        publisher("hello")
-    }()
     //then
     assert.IsTrue(<-waitForAnswer)
     <-time.After(time.Duration(6*delay))
