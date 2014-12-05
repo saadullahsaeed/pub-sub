@@ -36,8 +36,17 @@ Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, th
 it also promotes a uniform interface.  
 + _WhenTimeout_ -- is a public function that allows you to construct a side Topic, which publishes messages whenever a base provided Topic is not
 updated with an event in a prescribed amount of time.
++ _MustPublishWithin_ -- is very similar to _WhenTimeout_ except that it _panics_ instead of passing errors. 
++ _NewTemporaryTopic_ -- is a public function which allows you to construct a Topic, that is automatically closed after a certain period of time. This functionality is useful if you don't want to worry about the lifecycle of the Topic. The downside is that you can't reuse a closed Topic. 
++ _NewTimerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
+Any Publish event occuring on the Timer resets the Timer. This Topic implementation is used within _WhenTimeout_
+
+Some of the factories in this library have a _WithLogging_ variant, which allows you to inspect Topic state via a logging method (like log.Println). This
+has a performance impact of course.  
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
+
+Note, that the library exposes a Version() method which you can use to inspect this libraries' version.  
 
 ### Simple example of using Publisher and Subscriber
 Here I'll show how to create a Publisher and a Subscriber. 
@@ -49,7 +58,7 @@ import (
 )
 
 topic := events.NewTopic("my-new-topic")
-publisher := topic.NewPublisher(nil)
+publisher := topic.NewPublisher()
 subscriber := func(event interface{}) {
     //prove to me that the Subscriber ran!
    log.Println(event) 
@@ -71,7 +80,7 @@ import (
 
 firstTopic := events.NewTopic("my-new-topic")
 secondTopic := events.NewTopic("my-latest-topic")
-publisher := topic.NewPublisher(nil)
+publisher := topic.NewPublisher()
 subscriber := func(event interface{}) {
     //prove to me that something was sent...
    log.Println(event) 
@@ -193,7 +202,7 @@ func Wire(configuration *Configuration) {
             configuration.Add(CUSTOMER, newDependency)
             //alert all high-level objects that might 
             //await for a Customer instance that it is now available
-            newDependency.NewPublisher(nil)(customer) 
+            newDependency.NewPublisher()(customer) 
             //in above line, we construct the function and instantly call it...
         })
     }()
