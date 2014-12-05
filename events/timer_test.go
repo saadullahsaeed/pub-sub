@@ -69,9 +69,9 @@ func TestThat_WhenTimeout_Resets_EachTimeAnEventHappens(t *testing.T) {
     }()
     //then
     log.Println(startTime)
-    timeElapsed := <-waitForAnswer
-    log.Println(timeElapsed)
-    log.Println("Closing")
-    assert.IsNotNil(timeElapsed)
+    timeEnd := <-waitForAnswer
+    timeElapsed := timeEnd.Sub(startTime)
+    assert.IsNotNil(timeElapsed).IsTrue(timeElapsed > time.Duration(5*delay))
     errorTopic.Close()
 }
+
