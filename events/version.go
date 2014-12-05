@@ -1,6 +1,6 @@
 package events
 
 /* Returns the version of this library */
-func Version() float64 {
-    return 1.1
+func Version() string {
+    return "1.0.0"
 }
