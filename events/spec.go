@@ -24,6 +24,7 @@ func (spec *topicSpec) NewPublisher() Publisher {
         go func() {
             defer optionallyLogPanics(spec, "topic probably closed, error in NewPublisher()")
             spec.events<- event
+            optionallyLog(spec, "new event")
         }()
     }
     return publisher

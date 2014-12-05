@@ -46,7 +46,7 @@ func TestThat_WhenTimeout_Works(t *testing.T) {
     //then
     assert.IsTrue(<-waitForAnswer)
     <-time.After(time.Duration(6*delay))
-    // log.Println("Closing")
+    log.Println("Closing")
     errorTopic.Close()
 }
 

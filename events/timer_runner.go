@@ -46,7 +46,7 @@ func buildTickerLoop(spec *topicSpec, timeout time.Duration) func() {
                     //note: if subscriber sends something to a channel we don't want to be blocked.
                     go subscriber(current)
                 }
-                optionallyLog(spec, "notified subscribers")
+                optionallyLog(spec, "tick")
             case <-spec.events:
                 if closed {
                     optionallyLog(spec, "has closed, so abandoning the nudge")
