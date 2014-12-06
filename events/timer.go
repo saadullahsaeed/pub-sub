@@ -2,7 +2,7 @@ package events
 
 import (
     "time"
-    // "fmt"
+    "fmt"
     "errors"
 )
 
@@ -95,6 +95,6 @@ func MustPublishWithin(topic Topic, timeout time.Duration) {
     errorTopic := WhenTimeout(topic, timeout, topic.String()+"-timeout-errors-collector")
     errorTopic.NewSubscriber(func(timeout interface{}) {
         go errorTopic.Close()
-        panic(errorsNew("Timeout occured at "+timeout.(time.Time)))
+        panic(errors.New(fmt.Sprintf("Timeout occured at %v", timeout)))
     })
 }
