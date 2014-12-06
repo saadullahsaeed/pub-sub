@@ -36,7 +36,7 @@ Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, th
 it also promotes a uniform interface.  
 + _WhenTimeout_ -- is a public function that allows you to construct a side Topic, which publishes messages whenever a base provided Topic is not
 updated with an event in a prescribed amount of time.
-+ _MustPublishWithin_ -- is very similar to _WhenTimeout_ except that it _panics_ instead of passing errors. 
++ _MustPublishWithin_ -- is very similar to _WhenTimeout_ except that it _panics_ when the underlying Topic picks up a time.Time event.
 + _NewTemporaryTopic_ -- is a public function which allows you to construct a Topic, that is automatically closed after a certain period of time. This functionality is useful if you don't want to worry about the lifecycle of the Topic. The downside is that you can't reuse a closed Topic. 
 + _NewTimerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
 Any Publish event occuring on the Timer resets the Timer. This Topic implementation is used within _WhenTimeout_
@@ -187,7 +187,7 @@ func Wire(configuration *Configuration) {
     go func () {
         topic := events.And([]events.Topic{
             configuration.Get(ADDRESS),
-            conciguration.Get(PERSONAL_DETAILS)
+            configuration.Get(PERSONAL_DETAILS)
         })
         topic.NewSubscriber(func(rawResult interface{}) {
             //The objects need to cast... If Go had generics...
@@ -211,7 +211,7 @@ func Wire(configuration *Configuration) {
 
 Two very important notes:
 + Note that Topics _block_ if there are no Subscribers listening. Topics should not deadlock, as the crucial parts run - in the provided implementation - in 
-separate go-routines. You could use a WhenTimeout() wrapper on the returned Topic to be safe, if you suspect you might not be notified via a Publisher. 
+separate go-routines. You could use a WhenTimeout() or MustPublishWithin wrapper on the returned Topic to be safe, if you suspect you might not be notified via a Publisher. 
 + Remember that Topics need to be *Closed*. You are using go-routines in the background which should be released when the Topics are no longer in usage. A pattern which you can implement is to 
 add a method to the Configuration which you invoke after the Wire() method(s), that listens on a given Topic. When notified, it closes all Topics in the Configuration. 
 
@@ -233,5 +233,4 @@ DI approach, with a clear pattern of what is called and when. With the '`' notat
 Also, I was just happy to do it with channels and go-routines, not via reflection. 
 
 ### TODOs
-+ Add a WhenTimeout(Topic, time.Duration, string) Topic function.  
-+ Add a Split(Topic, func(interface{}) Topic) function. 
++ Splitter functionality

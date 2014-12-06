@@ -9,8 +9,9 @@ import (
 /**
 Produces a Topic which encapsulates a Go <-time.NewTicker(). 
 
-Publishing to the Topic causes a ticker reset, but the event itself is otherwise ignored.
-
+Ticker topics have one important distinction over a classic 'Topic': publishing does not actually cause 
+a Subscribe event on the other end. Publishing to the Topic causes a ticker reset, but the event itself 
+is otherwise ignored. 
 */
 func NewTickerTopic(topicName string, timeout time.Duration) Topic {
     bus := &ticker {
@@ -67,10 +68,8 @@ func (t *ticker) Close() error {
     return t.spec.Close()
 }
 /**
-Allows you to put an artificial timeout on a Topic, and send timeouts events to a designated Topic whenever an event does not arrive in 
+Allows you to put an artificial timeout on a Topic, and send time.Time events to a designated Topic whenever an event does not arrive in 
 a specified amount of time. 
-
-The created topic publishes events which are in fact time.Time elements. 
 */
 func WhenTimeout(topic Topic, timeout time.Duration, tickerTopicName string) Topic {
     return whenTimeout(topic, NewTickerTopic(tickerTopicName, timeout))
