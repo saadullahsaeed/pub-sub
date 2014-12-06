@@ -1,6 +1,6 @@
 package events
 
-/* Returns the version of this library */
+/* Returns the version of this library. The versioning method is compliant with Semantic Versioning principles. */
 func Version() string {
-    return "1.0.0"
+    return "1.0-alpha"
 }
