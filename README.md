@@ -10,6 +10,18 @@ Go-routines and channels are used in the background, not queues.
 ### Go version 
 This library assumes Go version 1.3.3+. Previous versions of Go have a different way of approaching GOPATH, etc, hence Makefile would have to be done differently. 
 
+## Usage ##
+To use the latest 'master' branch version, invoke the following: 
+```go
+go get github.com/tholowka/pub-sub/events
+```
+and import the library using traditional means:
+```go
+import (
+    "github.com/tholowka/pub-sub/events"
+)
+```
+
 ## The API
 As in a traditional Publish-Subscriber pattern, this library provides a concept of a Topic (known as a Message bus elsewhere). Clients of this library construct a Topic, and 
 then may assign Publishers and Subscribers to it in an (a)synchronous way. 
