@@ -3,7 +3,7 @@ package events
 import (
     "time"
     // "fmt"
-    // "errors"
+    "errors"
 )
 
 /**
@@ -93,8 +93,8 @@ This a variant of WhenTimeout, which panics when something is received in the un
 */
 func MustPublishWithin(topic Topic, timeout time.Duration) {
     errorTopic := WhenTimeout(topic, timeout, topic.String()+"-timeout-errors-collector")
-    errorTopic.NewSubscriber(func(err interface{}) {
+    errorTopic.NewSubscriber(func(timeout interface{}) {
         go errorTopic.Close()
-        panic(err.(error))
+        panic(errorsNew("Timeout occured at "+timeout.(time.Time)))
     })
 }
