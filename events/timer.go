@@ -67,10 +67,10 @@ func (t *ticker) Close() error {
     return t.spec.Close()
 }
 /**
-Allows you to put an artificial timeout on a Topic, and send errors to a designated Topic whenever an event does not arrive in 
+Allows you to put an artificial timeout on a Topic, and send timeouts events to a designated Topic whenever an event does not arrive in 
 a specified amount of time. 
 
-The created topic publishes events which are in fact errors. 
+The created topic publishes events which are in fact time.Time elements. 
 */
 func WhenTimeout(topic Topic, timeout time.Duration, tickerTopicName string) Topic {
     return whenTimeout(topic, NewTickerTopic(tickerTopicName, timeout))
@@ -90,7 +90,7 @@ func whenTimeout(topic Topic, tickerTopic Topic) Topic {
 }
 
 /**
-This a variant of WhenTimeout, which panics instead of sending errors on a Topic
+This a variant of WhenTimeout, which panics when something is received in the underlying Ticker topic. 
 */
 func MustPublishWithin(topic Topic, timeout time.Duration) {
     errorTopic := WhenTimeout(topic, timeout, topic.String()+"-timeout-errors-collector")
