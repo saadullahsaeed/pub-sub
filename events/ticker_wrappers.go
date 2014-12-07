@@ -38,22 +38,23 @@ func generateTickerName(topic Topic) string {
 }
 
 /** 
-This function awaits for an event on provided Topic for the defined amount of time, and if none occurs - it panics. 
+This function awaits for an event on provided Topic for the defined amount of time, and returns true if it did occur.  
 */
-func MustPublishAtLeastOnce(topic Topic, timeout time.Duration) {
+func CheckIfPublishOccuredAtLeastOnce(topic Topic, timeout time.Duration) <-chan bool {
     tickerTopic := NewTickerTopic(generateTickerName(topic), timeout)
-    mustPublishAtLeastOnce(topic, tickerTopic, timeout)
+    return mustPublishAtLeastOnce(topic, tickerTopic, timeout)
 }
 
 /** 
 This is a variant of the MustPublishAtLeastOnce method which allows for logging.
 */
-func MustPublishAtLeastOnceWithLogging(topic Topic, timeout time.Duration, loggingMethod func(...interface{})) {
+func CheckIfPublishOccuredAtLeastOnceWithLogging(topic Topic, timeout time.Duration, loggingMethod func(...interface{})) <-chan bool {
     tickerTopic := NewTickerTopicWithLogging(generateTickerName(topic), timeout, loggingMethod)
-    mustPublishAtLeastOnce(topic, tickerTopic, timeout)
+    return mustPublishAtLeastOnce(topic, tickerTopic, timeout)
 }
 
-func mustPublishAtLeastOnce(topic, tickerTopic Topic, timeout time.Duration) {
+func mustPublishAtLeastOnce(topic, tickerTopic Topic, timeout time.Duration) <-chan bool {
+    releaser := make(chan bool)
     joint := Or([]Topic { topic, tickerTopic }, tickerTopic.String()+"-"+topic.String())
     jointSubscriber := func(event interface{}) {
         jointEvent := event.(map[string][]interface{})
@@ -61,10 +62,12 @@ func mustPublishAtLeastOnce(topic, tickerTopic Topic, timeout time.Duration) {
         if !originalEventExists || len(originalEvent) == 0 {
             tickerTopic.Close()
             joint.Close()
-            panic(errors.New(fmt.Sprintf("%v: No event occured in topic in defined time", topic)))
+            releaser<-false
         }
         joint.Close()
         tickerTopic.Close()
+        releaser<-true
     }
-    <-joint.NewSubscriber(jointSubscriber)
+    joint.NewSubscriber(jointSubscriber)
+    return releaser
 }

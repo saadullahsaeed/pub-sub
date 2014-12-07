@@ -48,7 +48,7 @@ Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, th
 it also promotes a uniform interface.  
 + _WhenTimeout_ -- is a public function that allows you to construct a side Topic, which publishes messages whenever a base provided Topic is not
 updated with an event in a prescribed amount of time.
-+ _MustPublishWithin_ -- is very similar to _WhenTimeout_ except that it _panics_ when the underlying Topic picks up a time.Time event.
++ _CheckIfPublishOccuredAtLeastOnce_ -- is very similar to _WhenTimeout_ except that it returns true/false, depending whether a Publish did occur in the specified time.
 + _NewTemporaryTopic_ -- is a public function which allows you to construct a Topic, that is automatically closed after a certain period of time. This functionality is useful if you don't want to worry about the lifecycle of the Topic. The downside is that you can't reuse a closed Topic. 
 + _NewTimerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
 Any Publish event occuring on the Timer resets the Timer. This Topic implementation is used within _WhenTimeout_
