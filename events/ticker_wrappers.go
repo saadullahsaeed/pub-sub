@@ -3,7 +3,7 @@ package events
 import (
     "time"
     "fmt"
-    "errors"
+    // "errors"
 )
 
 const (
@@ -63,6 +63,7 @@ func mustPublishAtLeastOnce(topic, tickerTopic Topic, timeout time.Duration) <-c
             tickerTopic.Close()
             joint.Close()
             releaser<-false
+            return
         }
         joint.Close()
         tickerTopic.Close()
