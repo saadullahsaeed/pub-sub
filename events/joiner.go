@@ -2,7 +2,7 @@ package events
 
 import (
     // "log"
-    // "fmt"
+    "fmt"
 )
 
 /**
@@ -36,11 +36,16 @@ func Or(inputTopics []Topic, name string) Topic {
 }
 
 func awaitEvent(inputTopics []Topic, name string, releaseResultsWhenSizeReached int) Topic {
+    index := 0
     newStates := make(chan map[string][]interface{})
     currentState := make(chan map[string][]interface{})
     closeChannel := make(chan bool)
     for _, topic := range inputTopics {
+        if topic == nil {
+            panic(fmt.Sprintf("Expecting a non-nil Topic at index: %v",index))
+        }
         topic.NewSubscriber(whichCollectsToACommonChannel(newStates, currentState, topic.String()))
+        index = index + 1
     }
     outputTopic := &topicWithChannels{ NewTopic(name), newStates, currentState, closeChannel }
     outputTopicPublisher := outputTopic.NewPublisher()
