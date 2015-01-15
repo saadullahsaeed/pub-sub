@@ -4,7 +4,6 @@ import (
     "testing"
     "github.com/tholowka/testing/assertions"
     "time"
-    "log"
 )
 
 func TestThat_WhenTimeout_Works(t *testing.T) {
@@ -14,7 +13,7 @@ func TestThat_WhenTimeout_Works(t *testing.T) {
     topic := NewTopic("a-game-to-play")
     waitForAnswer := make(chan bool)
     //when
-    errorTopic := WhenTimeoutWithLogging(topic, time.Duration(delay)*time.Millisecond, "timeouts-are-working", log.Println)
+    errorTopic := WhenTimeoutWithLogging(topic, time.Duration(delay)*time.Millisecond, "timeouts-are-working", defaultLogging)
     <-errorTopic.NewSubscriber(func(err interface{}) {
         switch err.(type) {
         case time.Time:
@@ -26,7 +25,7 @@ func TestThat_WhenTimeout_Works(t *testing.T) {
     //then
     assert.IsTrue(<-waitForAnswer)
     <-time.After(time.Duration(6*delay))
-    log.Println("Closing")
+    defaultLogging("Closing")
     errorTopic.Close()
 }
 
@@ -39,7 +38,7 @@ func TestThat_WhenTimeout_Resets_EachTimeAnEventHappens(t *testing.T) {
     publisher := topic.NewPublisher()
     waitForAnswer := make(chan time.Time)
     //when
-    errorTopic := WhenTimeoutWithLogging(topic, time.Duration(5*delay)*time.Millisecond, "timeouts-do-reset", log.Println)
+    errorTopic := WhenTimeoutWithLogging(topic, time.Duration(5*delay)*time.Millisecond, "timeouts-do-reset", defaultLogging)
     <-errorTopic.NewSubscriber(func(err interface{}) {
         switch err.(type) {
         case time.Time:
@@ -53,7 +52,7 @@ func TestThat_WhenTimeout_Resets_EachTimeAnEventHappens(t *testing.T) {
         publisher("hello")
     }()
     //then
-    log.Println(startTime)
+    defaultLogging("%v",startTime)
     timeEnd := <-waitForAnswer
     timeElapsed := timeEnd.Sub(startTime)
     assert.IsNotNil(timeElapsed).IsTrue(timeElapsed > time.Duration(5*delay))
@@ -74,7 +73,7 @@ func TestThat_CheckIfPublishOccured_ReturnsTrue_IfPublishedOccured(t *testing.T)
         publisher("chameleon")
     }()
     <-startTest
-    result := <-CheckIfPublishOccuredAtLeastOnceWithLogging(topic, time.Duration(delay)*time.Millisecond, log.Println)
+    result := <-CheckIfPublishOccuredAtLeastOnceWithLogging(topic, time.Duration(delay)*time.Millisecond, defaultLogging)
     assert.IsTrue(result)
 }
 
@@ -84,6 +83,6 @@ func TestThat_CheckIfPublishOccured_ReturnsFalse_IfPublishedDidNotOccur(t *testi
     assert := assertions.New(t)
 
     topic := NewTopic("headhunters")
-    result := <-CheckIfPublishOccuredAtLeastOnceWithLogging(topic, time.Duration(delay)*time.Millisecond, log.Println)
+    result := <-CheckIfPublishOccuredAtLeastOnceWithLogging(topic, time.Duration(delay)*time.Millisecond, defaultLogging)
     assert.IsFalse(result)
 }

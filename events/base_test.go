@@ -3,13 +3,12 @@ package events
 import (
     "testing"
     "github.com/tholowka/testing/assertions"
-    "log"
 )
 
 func TestThat_PubSub_Works(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopicWithLogging("my-awesome-rant", log.Println)
+    topic := NewTopicWithLogging("my-awesome-rant", defaultLogging)
     channel := make(chan string)
     publisher := topic.NewPublisher()
     subscriber := func(event interface{}) {
@@ -26,7 +25,7 @@ func TestThat_PubSub_Works(t *testing.T) {
 func TestThat_MultiplePublishers_Work(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopicWithLogging("my-public-rant", log.Println)
+    topic := NewTopicWithLogging("my-public-rant", defaultLogging)
     channel := make(chan string)
     firstPublisher := topic.NewPublisher()
     secondPublisher := topic.NewPublisher()
@@ -46,7 +45,7 @@ func TestThat_MultiplePublishers_Work(t *testing.T) {
 func TestThat_MultipleSubscribers_Work(t *testing.T) {
     //given
     assert := assertions.New(t)
-    topic := NewTopicWithLogging("my-secret-rant", log.Println)
+    topic := NewTopicWithLogging("my-secret-rant", defaultLogging)
     channel := make(chan string)
     publisher := topic.NewPublisher()
     firstSubscriber := func(event interface{}) {

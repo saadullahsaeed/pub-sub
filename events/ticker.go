@@ -28,7 +28,7 @@ func NewTickerTopic(topicName string, timeout time.Duration) Topic {
     return bus
 }
 
-func NewTickerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(...interface{})) Topic {
+func NewTickerTopicWithLogging(topicName string, timeout time.Duration, loggingMethod func(string, ...interface{})) Topic {
     bus := &ticker {
             &topicSpec {
                 make(chan Subscriber),

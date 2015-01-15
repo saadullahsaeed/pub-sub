@@ -41,8 +41,8 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
 func Test_Close_DoesNot_CrashAnything(t *testing.T) {
     //given
     assert := assertions.New(t)
-    rants := NewTopicWithLogging("rants", log.Println)
-    streams := NewTopicWithLogging("streams", log.Println)
+    rants := NewTopicWithLogging("rants", defaultLogging)
+    streams := NewTopicWithLogging("streams", defaultLogging)
     joint := And([]Topic { rants, streams }, "joint")
     //then
     assert.DoesNotThrow(func() {
@@ -73,7 +73,7 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic
     topicsArray := []Topic {}
     results := make(chan interface{})
     for _, name := range fixture.Topics {
-        topics[name] = NewTopicWithLogging(name, log.Println)
+        topics[name] = NewTopicWithLogging(name, defaultLogging)
         topicsArray = append(topicsArray, topics[name])
     }
     topic := topicOperation(topicsArray, "results")
