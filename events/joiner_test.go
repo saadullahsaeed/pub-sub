@@ -7,7 +7,6 @@ import (
     "encoding/json"
     "io/ioutil"
     "errors"
-    "log"
     "fmt"
 )
 
@@ -123,10 +122,10 @@ func expectResult(assert assertions.Assertions, results interface{}, expected in
             assert.AreEqual(value, results.(map[string][]interface{})[key])
         }
     case error:
-        log.Println(results.(error))
+        defaultLogging("%v",results.(error))
         assert.IsTrue(false)
     default:
-        log.Println(fmt.Sprintf("Expecting a different type: %T", results))
+        defaultLogging(fmt.Sprintf("Expecting a different type: %T", results))
         assert.IsTrue(false)
     }
 }
@@ -138,7 +137,7 @@ func expectError(assert assertions.Assertions, results interface{}) {
     case map[string][]string:
         assert.IsTrue(false)
     default:
-        log.Println(fmt.Sprintf("Expecting a different type: %T", results))
+        defaultLogging(fmt.Sprintf("Expecting a different type: %T", results))
         assert.IsTrue(false)
     }
 }
