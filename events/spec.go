@@ -10,7 +10,7 @@ type topicSpec struct {
     events chan interface{}
     finish chan bool
     subscribers []Subscriber
-    loggingMethod func(...interface{})
+    loggingMethod func(string,...interface{})
 }
 
 func (spec *topicSpec) String() string {
@@ -58,6 +58,6 @@ func optionallyLogPanics(spec *topicSpec, message string) {
 
 func optionallyLog(spec *topicSpec, message string) {
     if spec.loggingMethod != nil {
-        spec.loggingMethod(fmt.Sprintf("%v: "+message, spec))
+        spec.loggingMethod(message, spec)
     }
 }

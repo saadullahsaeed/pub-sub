@@ -14,18 +14,18 @@ func buildBaseLoop(spec *topicSpec) func() {
         //note: line below is to make sure that subscribing occurs before ANY event publishing.
         if len(spec.subscribers) == 0 {
             spec.subscribers = append(spec.subscribers, <-spec.newSubscribers)
-            optionallyLog(spec, "added subscriber")
+            optionallyLog(spec, "%v added subscriber")
         }
-        optionallyLog(spec, "has started")
+        optionallyLog(spec, "%v has started")
         for ;; {
             select {
             case <-spec.finish: //released when you close the channel
                 closed = true
-                optionallyLog(spec, "has closed")
+                optionallyLog(spec, "%v has closed")
                 return
             case newSubscriber:=<-spec.newSubscribers:
                 if closed {
-                    optionallyLog(spec, "has just closed, so adding a subscriber is not possible")
+                    optionallyLog(spec, "%v has just closed, so adding a subscriber is not possible")
                     return
                 }
                 //note: when channel is closed newSubscriber == nil
@@ -34,7 +34,7 @@ func buildBaseLoop(spec *topicSpec) func() {
                 }
             case event:=<-spec.events:
                 if closed {
-                    optionallyLog(spec, "has just closed, so ignoring the incoming event")
+                    optionallyLog(spec, "%v has just closed, so ignoring the incoming event")
                     return
                 }
                 //note: when channel is closed event == nil
@@ -43,7 +43,7 @@ func buildBaseLoop(spec *topicSpec) func() {
                         //note: if subscriber sends something to a channel we don't want to be blocked.
                         go subscriber(event)
                     }
-                    optionallyLog(spec, "notified subscribers")
+                    optionallyLog(spec, "%v notified subscribers")
                 }
             }
         }

@@ -27,7 +27,7 @@ func NewTopic(topicName string) Topic {
 This very similar to the NewTopic function, except that it allows for logging (log.Println) to be injected into the framework, which 
 is useful for tests.
 */
-func NewTopicWithLogging(topicName string, loggingMethod func(...interface{})) Topic {
+func NewTopicWithLogging(topicName string, loggingMethod func(string,...interface{})) Topic {
     bus := &topicSpec {
             make(chan Subscriber),
             topicName,
