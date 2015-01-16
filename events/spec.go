@@ -1,7 +1,7 @@
 package events
 
 import (
-    "fmt"
+    // "fmt"
 )
 
 type topicSpec struct {
