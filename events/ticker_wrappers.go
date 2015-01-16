@@ -20,7 +20,7 @@ func WhenTimeout(topic Topic, timeout time.Duration, tickerTopicName string) Top
 /**
 A variant of WhenTimeout that allows for logging.
 */
-func WhenTimeoutWithLogging(topic Topic, timeout time.Duration, tickerTopicName string, loggingMethod func(...interface{})) Topic {
+func WhenTimeoutWithLogging(topic Topic, timeout time.Duration, tickerTopicName string, loggingMethod func(string, ...interface{})) Topic {
     return whenTimeout(topic, NewTickerTopicWithLogging(tickerTopicName, timeout, loggingMethod))
 }
 
@@ -48,7 +48,7 @@ func CheckIfPublishOccuredAtLeastOnce(topic Topic, timeout time.Duration) <-chan
 /** 
 This is a variant of the MustPublishAtLeastOnce method which allows for logging.
 */
-func CheckIfPublishOccuredAtLeastOnceWithLogging(topic Topic, timeout time.Duration, loggingMethod func(...interface{})) <-chan bool {
+func CheckIfPublishOccuredAtLeastOnceWithLogging(topic Topic, timeout time.Duration, loggingMethod func(string, ...interface{})) <-chan bool {
     tickerTopic := NewTickerTopicWithLogging(generateTickerName(topic), timeout, loggingMethod)
     return mustPublishAtLeastOnce(topic, tickerTopic, timeout)
 }
