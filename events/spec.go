@@ -50,7 +50,7 @@ func (spec *topicSpec) Close() error {
 func optionallyLogPanics(spec *topicSpec, message string) {
     if err := recover(); err != nil {
         if spec.loggingMethod != nil {
-            spec.loggingMethod("%v: "+message+"%v", spec, "")
+            spec.loggingMethod("%v: "+message, spec)
         }
         panic(err.(error).Error())
     }
@@ -58,6 +58,6 @@ func optionallyLogPanics(spec *topicSpec, message string) {
 
 func optionallyLog(spec *topicSpec, message string) {
     if spec.loggingMethod != nil {
-        spec.loggingMethod("%v: "+message+"%v", spec, "")
+        spec.loggingMethod("%v: "+message, spec)
     }
 }
