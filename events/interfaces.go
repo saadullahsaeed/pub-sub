@@ -29,3 +29,14 @@ type Topic interface {
     //Close frees the underlying resources, and depending on the implementation may render the Topic unusable
     Close() error
 }
+
+/**
+Exposes the top most layer of this library, which allows you to create Topics and Join them. 
+The benefit of this structure, over typical standalone functions, is that some of the go-routine construction can be simplified and unified. 
+
+Since 2.0
+*/
+type Provider interface {
+    NewTopic(string) Topic
+    NewTopicWithLogging(string, loggingMethod func(string, ...interface{})) Topic
+}

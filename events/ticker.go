@@ -17,7 +17,7 @@ func NewTickerTopic(topicName string, timeout time.Duration) Topic {
             make(chan Subscriber),
             topicName,
             make(chan interface{}),
-            make(chan bool),
+            make(chan string),
             []Subscriber{},
             nil,
         },

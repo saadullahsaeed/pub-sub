@@ -8,7 +8,7 @@ type topicSpec struct {
     newSubscribers chan Subscriber
     name string
     events chan interface{}
-    finish chan bool
+    finish chan string
     subscribers []Subscriber
     loggingMethod func(string,...interface{})
 }

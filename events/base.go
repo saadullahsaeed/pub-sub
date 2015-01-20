@@ -14,7 +14,7 @@ func NewTopic(topicName string) Topic {
             make(chan Subscriber),
             topicName,
             make(chan interface{}),
-            make(chan bool),
+            make(chan string),
             []Subscriber{},
             nil,
     }
@@ -32,7 +32,7 @@ func NewTopicWithLogging(topicName string, loggingMethod func(string,...interfac
             make(chan Subscriber),
             topicName,
             make(chan interface{}),
-            make(chan bool),
+            make(chan string),
             []Subscriber{},
             loggingMethod,
     }
@@ -40,3 +40,6 @@ func NewTopicWithLogging(topicName string, loggingMethod func(string,...interfac
     go runner()
     return bus
 }
+
+
+
