@@ -101,12 +101,14 @@ func NewProvider() Provider {
         make(chan *eventSpec),
         make(chan string),
     }
-    go buildProvider(topicProvider)
+    <-runProvider(topicProvider)
     return topicProvider
 }
 
-func buildProvider(p *provider) func() {
-    return func() {
+func runProvider(p *provider) <-chan bool {
+    releaser := make(chan bool)
+    go func() {
+        close(releaser)
         for ;; {
             select {
             case name:= <-p.closeEvents:
@@ -128,7 +130,8 @@ func buildProvider(p *provider) func() {
 
             }
         }
-    }
+    }()
+    return releaser
 }
 
 func reQueue(e *eventSpec, ch chan *eventSpec) {
