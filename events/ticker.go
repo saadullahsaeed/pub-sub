@@ -34,7 +34,7 @@ func NewTickerTopicWithLogging(topicName string, timeout time.Duration, loggingM
                 make(chan Subscriber),
                 topicName,
                 make(chan interface{}),
-                make(chan bool),
+                make(chan string),
                 []Subscriber{},
                 loggingMethod,
         },

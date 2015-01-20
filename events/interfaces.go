@@ -38,5 +38,6 @@ Since 2.0
 */
 type Provider interface {
     NewTopic(string) Topic
-    NewTopicWithLogging(string, loggingMethod func(string, ...interface{})) Topic
+    NewTopicWithLogging(string, func(string, ...interface{})) Topic
+    Close() error
 }
