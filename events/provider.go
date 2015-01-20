@@ -35,14 +35,14 @@ type provider struct {
 }
 
 func (t *provider) NewTopic(topicName string) Topic {
-    return &providerTopic {
+    return &simpleTopic {
         t,
         topicName,
     }
 }
 
 func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(string, ...interface{})) Topic {
-    return &providerTopic {
+    return &simpleTopic {
         t,
         topicName,
     }
@@ -56,16 +56,56 @@ func (t *provider) String() string {
     return fmt.Sprintf("Topic-provider {size=%v}", len(t.topics))
 }
 
-type providerTopic struct {
+type statefulTopic struct {
+    p *provider
+    names []string
+    state interface{}
+    shouldPublishState func(interface{}) bool
+    eventToState func(interface{}) interface{}
+}
+
+type (a *statefulTopic) String() string {
+    return fmt.Sprintf("%v", a.names)
+}
+
+func (a *statefulTopic) NewPublisher() Publisher {
+    publisher := func(event interface{}) {
+        //it's crucial this is in a go-routine: running 2+ Publishers in the same
+        //go-routine causes a deadlock without this.
+        go func() {
+            a.p.events<- &eventSpec { a.name, event }
+        }()
+    }
+    return publisher
+}
+
+func (a *statefulTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
+    releaser := make(chan bool)
+    go func() {
+        a.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
+        close(releaser) //this releases awaiting listeners
+    }()
+    return releaser
+}
+
+
+func (a *statefulTopic) Close() error {
+    go func() {
+        a.p.closeEvents<-t.String()
+    }()
+    return nil
+}
+
+type simpleTopic struct {
     p *provider
     name string
 }
 
-func (t *providerTopic) String() string {
+func (t *simpleTopic) String() string {
     return t.name
 }
 
-func (t *providerTopic) NewPublisher() Publisher {
+func (t *simpleTopic) NewPublisher() Publisher {
     publisher := func(event interface{}) {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
@@ -76,7 +116,7 @@ func (t *providerTopic) NewPublisher() Publisher {
     return publisher
 }
 
-func (t *providerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
+func (t *simpleTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
     releaser := make(chan bool)
     go func() {
         t.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
@@ -85,7 +125,7 @@ func (t *providerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
     return releaser
 }
 
-func (t *providerTopic) Close() error {
+func (t *simpleTopic) Close() error {
     go func() {
         t.p.closeEvents<-t.String()
     }()
