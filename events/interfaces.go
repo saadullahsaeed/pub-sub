@@ -42,8 +42,5 @@ type Provider interface {
     NewTopicWithLogging(string, func(string, ...interface{})) Topic
     Close() error
     AndGate([]Topic) Topic
+    OrGate([]Topic) Topic
 }
-/**
-This is used with Topics that have state. This function converts 'events' and current topic 'state' into a new topic 'state'.
-*/
-type TopicStateModifierFunction func(event interface{}, oldState interface{}) interface{}

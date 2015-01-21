@@ -113,7 +113,7 @@ func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(stri
     return topic
 }
 
-func (t *provider) buildAndSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
+func (t *provider) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
     return func(event interface{}) {
         stateModifier := func(pt *provider) {
             results := andTopic.optionalState.(map[string][]interface{})
@@ -129,7 +129,19 @@ func (t *provider) buildAndSubscriber(andTopic *simpleTopic, topic Topic, topics
     }
 }
 
-func (t *provider) AndGate(topics []Topic) Topic {
+func (t *provider) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
+    return func(event interface{}) {
+        stateModifier := func(pt *provider) {
+            results := orTopic.optionalState.(map[string][]interface{})
+            results[topic.String()] = append(results[topic.String()], event)
+            orTopic.NewPublisher()(copyAside(results))
+            orTopic.optionalState = map[string][]interface{} {}
+        }
+        t.stateModifier <- &stateModifierSpec { stateModifier }
+    }
+}
+
+func (t *provider) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber) Topic {
     releaser := make(chan Topic)
     adder := func(p *provider) {
         topicName := fmt.Sprintf("%v", topics)
@@ -137,7 +149,7 @@ func (t *provider) AndGate(topics []Topic) Topic {
         p.topics[topicName] = newTopic
         p.subscribers[topicName] = []Subscriber {}
         for _, topic := range topics {
-            topic.NewSubscriber(t.buildAndSubscriber(newTopic, topic, topics))
+            topic.NewSubscriber(subscriberFactory(newTopic, topic, topics))
         }
         releaser<-newTopic
     }
@@ -145,6 +157,14 @@ func (t *provider) AndGate(topics []Topic) Topic {
     topic := <-releaser
     close(releaser)
     return topic
+}
+
+func (t *provider) OrGate(topics []Topic) Topic {
+    return t.buildGateTopic(topics, t.buildOrGateSubscriber)
+}
+
+func (t *provider) AndGate(topics []Topic) Topic {
+    return t.buildGateTopic(topics, t.buildAndGateSubscriber)
 }
 
 func (t *provider) Close() error {
@@ -186,4 +206,16 @@ func runProvider(p *provider) <-chan bool {
 
 func reQueue(e *eventSpec, ch chan *eventSpec) {
     ch<-e
+}
+
+func copyAside(original map[string][]interface{}) map[string][]interface{} {
+    mapCopy := map[string][]interface{} {}
+    for key,value := range original {
+        copiedValue := []interface{} {}
+        for _, arrayValue := range value {
+            copiedValue = append(copiedValue, arrayValue)
+        }
+        mapCopy[key] = copiedValue
+    }
+    return mapCopy
 }
