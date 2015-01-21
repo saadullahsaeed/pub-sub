@@ -36,7 +36,7 @@ type simpleTopic struct {
 }
 
 func (t *simpleTopic) String() string {
-    return fmt.Sprintf("%v { %v }", t.name, t.optionalState)
+    return fmt.Sprintf("%v", t.name)
 }
 
 func (t *simpleTopic) NewPublisher() Publisher {
@@ -120,7 +120,7 @@ func (t *provider) buildAndSubscriber(andTopic *simpleTopic, topic Topic, topics
             results[topic.String()] = append(results[topic.String()], event)
             if len(results) == len(topics) {
                 andTopic.NewPublisher()(copyAside(results))
-                // andTopic.optionalState = map[string][]interface{} {}
+                andTopic.optionalState = map[string][]interface{} {}
             } else {
                 andTopic.optionalState = results
             }
@@ -129,7 +129,7 @@ func (t *provider) buildAndSubscriber(andTopic *simpleTopic, topic Topic, topics
     }
 }
 
-func (t *provider) JoinWithAnd(topics []Topic, name string) Topic {
+func (t *provider) AndGate(topics []Topic) Topic {
     releaser := make(chan Topic)
     adder := func(p *provider) {
         topicName := fmt.Sprintf("%v", topics)

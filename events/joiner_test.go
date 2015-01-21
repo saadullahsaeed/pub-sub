@@ -8,12 +8,13 @@ import (
     "io/ioutil"
     "errors"
     "fmt"
+    // "log"
 )
 
 func Test_And_WithMultipleTopics(t *testing.T) {
     //given
     provider := NewProvider()
-    results := runFixtureAndOp(provider, "test1.json", provider.JoinWithAnd)
+    results := runFixtureAndOp(provider, "test1.json", provider.AndGate)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello", "how are you?" },
@@ -23,14 +24,16 @@ func Test_And_WithMultipleTopics(t *testing.T) {
 
 func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
     //given
-    results := runFixtureAndOp(NewProvider(), "test2.json", And)
+    provider := NewProvider()
+    results := runFixtureAndOp(NewProvider(), "test2.json", provider.AndGate)
     //then
     expectError(assertions.New(t), <-results)
 }
 
 func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
     //given
-    results := runFixtureAndOp(NewProvider(), "test3.json", And)
+    provider := NewProvider()
+    results := runFixtureAndOp(NewProvider(), "test3.json", provider.AndGate)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello" },
@@ -40,10 +43,11 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
 
 func Test_Close_DoesNot_CrashAnything(t *testing.T) {
     //given
+    provider := NewProvider()
     assert := assertions.New(t)
-    rants := NewTopicWithLogging("rants", defaultLogging)
-    streams := NewTopicWithLogging("streams", defaultLogging)
-    joint := And([]Topic { rants, streams }, "joint")
+    rants := provider.NewTopicWithLogging("rants", defaultLogging)
+    streams := provider.NewTopicWithLogging("streams", defaultLogging)
+    joint := provider.AndGate([]Topic { rants, streams })
     //then
     assert.DoesNotThrow(func() {
         joint.Close()
@@ -67,7 +71,7 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
+func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]Topic) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}
@@ -76,7 +80,11 @@ func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]T
         topics[name] = provider.NewTopicWithLogging(name, defaultLogging)
         topicsArray = append(topicsArray, topics[name])
     }
-    topic := topicOperation(topicsArray, "results")
+    topic := topicOperation(topicsArray)
+    subscriber := func(topicMessage interface{}) {
+        results <- topicMessage
+    }
+    <-topic.NewSubscriber(subscriber)
     for _, publish := range fixture.Test {
         for name, message := range publish {
             //note: the below technique streamlines execution of Publishers...
@@ -89,10 +97,6 @@ func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]T
             <-streamLine
         }
     }
-    subscriber := func(topicMessage interface{}) {
-        results <- topicMessage
-    }
-    topic.NewSubscriber(subscriber)
     finalResult := make(chan interface{})
     select {
     case message:=<-results:
