@@ -3,6 +3,10 @@ See http://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern for a descrip
 */
 package events
 
+import (
+    "time"
+)
+
 /*
 The Publisher in the Publish-Subscribe pattern, or a shorthand for a function which you may call each time you want to inform about a particular event. Publishers can be created by any Topic instance. 
 */
@@ -40,6 +44,7 @@ Since 2.0
 type Provider interface {
     NewTopic(string) Topic
     NewTopicWithLogging(string, func(string, ...interface{})) Topic
+    NewTickerTopic(string, time.Duration) Topic
     Close() error
     AndGate([]Topic) Topic
     OrGate([]Topic) Topic
