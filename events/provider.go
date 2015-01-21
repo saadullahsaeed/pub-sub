@@ -2,6 +2,7 @@ package events
 import (
     "time"
     "fmt"
+    "log"
 )
 
 type spec struct {
@@ -31,10 +32,11 @@ type stateModifierSpec struct {
 type simpleTopic struct {
     p *provider
     name string
+    optionalState interface{}
 }
 
 func (t *simpleTopic) String() string {
-    return t.name
+    return fmt.Sprintf("%v { %v }", t.name, t.optionalState)
 }
 
 func (t *simpleTopic) NewPublisher() Publisher {
@@ -42,6 +44,7 @@ func (t *simpleTopic) NewPublisher() Publisher {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
         go func() {
+            log.Println(fmt.Sprintf("%v <- %v", t.name, event))
             t.p.events<- &eventSpec { t.name, event }
         }()
     }
@@ -91,10 +94,7 @@ type provider struct {
 }
 
 func (t *provider) NewTopic(topicName string) Topic {
-    topic := &simpleTopic {
-        t,
-        topicName,
-    }
+    topic := &simpleTopic { t, topicName, nil }
     adder := func(state *provider) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
@@ -104,10 +104,7 @@ func (t *provider) NewTopic(topicName string) Topic {
 }
 
 func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(string, ...interface{})) Topic {
-    topic := &simpleTopic {
-        t,
-        topicName,
-    }
+    topic := &simpleTopic { t, topicName, nil }
     adder := func(state *provider) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
@@ -116,9 +113,38 @@ func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(stri
     return topic
 }
 
-func (t *provider) JoinWithAnd(topicNames []string) Topic {
+func (t *provider) buildAndSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
+    return func(event interface{}) {
+        stateModifier := func(pt *provider) {
+            results := andTopic.optionalState.(map[string][]interface{})
+            results[topic.String()] = append(results[topic.String()], event)
+            if len(results) == len(topics) {
+                andTopic.NewPublisher()(copyAside(results))
+                // andTopic.optionalState = map[string][]interface{} {}
+            } else {
+                andTopic.optionalState = results
+            }
+        }
+        t.stateModifier <- &stateModifierSpec { stateModifier }
+    }
+}
 
-    return nil
+func (t *provider) JoinWithAnd(topics []Topic, name string) Topic {
+    releaser := make(chan Topic)
+    adder := func(p *provider) {
+        topicName := fmt.Sprintf("%v", topics)
+        newTopic := &simpleTopic { t, topicName, map[string][]interface{} {} }
+        p.topics[topicName] = newTopic
+        p.subscribers[topicName] = []Subscriber {}
+        for _, topic := range topics {
+            topic.NewSubscriber(t.buildAndSubscriber(newTopic, topic, topics))
+        }
+        releaser<-newTopic
+    }
+    t.stateModifier <- &stateModifierSpec { adder }
+    topic := <-releaser
+    close(releaser)
+    return topic
 }
 
 func (t *provider) Close() error {
@@ -137,6 +163,7 @@ func runProvider(p *provider) <-chan bool {
             select {
             case stateChange := <-p.stateModifier:
                 stateChange.modifier(p)
+                log.Println(fmt.Sprintf("state change: %v", p.topics))
             case newSubscriber:=<-p.newSubscribers:
                 if newSubscriber != nil {
                     p.subscribers[newSubscriber.name] = append(p.subscribers[newSubscriber.name],newSubscriber.subscriber)

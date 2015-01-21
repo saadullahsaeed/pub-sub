@@ -12,7 +12,8 @@ import (
 
 func Test_And_WithMultipleTopics(t *testing.T) {
     //given
-    results := runFixtureAndOp("test1.json", And)
+    provider := NewProvider()
+    results := runFixtureAndOp(provider, "test1.json", provider.JoinWithAnd)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello", "how are you?" },
@@ -22,14 +23,14 @@ func Test_And_WithMultipleTopics(t *testing.T) {
 
 func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
     //given
-    results := runFixtureAndOp("test2.json", And)
+    results := runFixtureAndOp(NewProvider(), "test2.json", And)
     //then
     expectError(assertions.New(t), <-results)
 }
 
 func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
     //given
-    results := runFixtureAndOp("test3.json", And)
+    results := runFixtureAndOp(NewProvider(), "test3.json", And)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello" },
@@ -66,12 +67,11 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
+func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]Topic, string) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}
     results := make(chan interface{})
-    provider := NewProvider()
     for _, name := range fixture.Topics {
         topics[name] = provider.NewTopicWithLogging(name, defaultLogging)
         topicsArray = append(topicsArray, topics[name])
@@ -123,7 +123,7 @@ func expectResult(assert assertions.Assertions, results interface{}, expected in
             assert.AreEqual(value, results.(map[string][]interface{})[key])
         }
     case error:
-        defaultLogging("%v",results.(error))
+        defaultLogging("%v",results)
         assert.IsTrue(false)
     default:
         defaultLogging(fmt.Sprintf("Expecting a different type: %T", results))

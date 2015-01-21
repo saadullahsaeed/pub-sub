@@ -41,6 +41,7 @@ type Provider interface {
     NewTopic(string) Topic
     NewTopicWithLogging(string, func(string, ...interface{})) Topic
     Close() error
+    JoinWithAnd([]Topic, string) Topic
 }
 /**
 This is used with Topics that have state. This function converts 'events' and current topic 'state' into a new topic 'state'.
