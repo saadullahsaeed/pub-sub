@@ -24,76 +24,8 @@ type eventSpec struct {
     event interface{}
 }
 
-type provider struct {
-    newSpecs chan *spec
-    newTimeouts chan *timeoutSpec
-    newSubscribers chan *subscriberSpec
-    topics map[string]Topic
-    subscribers map[string][]Subscriber
-    events chan *eventSpec
-    closeEvents chan string
-}
-
-func (t *provider) NewTopic(topicName string) Topic {
-    return &simpleTopic {
-        t,
-        topicName,
-    }
-}
-
-func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(string, ...interface{})) Topic {
-    return &simpleTopic {
-        t,
-        topicName,
-    }
-}
-
-func (t *provider) Close() error {
-    return nil
-}
-
-func (t *provider) String() string {
-    return fmt.Sprintf("Topic-provider {size=%v}", len(t.topics))
-}
-
-type statefulTopic struct {
-    p *provider
-    names []string
-    state interface{}
-    shouldPublishState func(interface{}) bool
-    eventToState func(interface{}) interface{}
-}
-
-type (a *statefulTopic) String() string {
-    return fmt.Sprintf("%v", a.names)
-}
-
-func (a *statefulTopic) NewPublisher() Publisher {
-    publisher := func(event interface{}) {
-        //it's crucial this is in a go-routine: running 2+ Publishers in the same
-        //go-routine causes a deadlock without this.
-        go func() {
-            a.p.events<- &eventSpec { a.name, event }
-        }()
-    }
-    return publisher
-}
-
-func (a *statefulTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
-    releaser := make(chan bool)
-    go func() {
-        a.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
-        close(releaser) //this releases awaiting listeners
-    }()
-    return releaser
-}
-
-
-func (a *statefulTopic) Close() error {
-    go func() {
-        a.p.closeEvents<-t.String()
-    }()
-    return nil
+type stateModifierSpec struct {
+    modifier func(snapshot *provider)
 }
 
 type simpleTopic struct {
@@ -126,11 +58,14 @@ func (t *simpleTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
 }
 
 func (t *simpleTopic) Close() error {
-    go func() {
-        t.p.closeEvents<-t.String()
-    }()
+    remover := func(state *provider) {
+        delete(state.topics, t.name)
+        delete(state.subscribers, t.name)
+    }
+    t.p.stateModifier <- &stateModifierSpec { remover }
     return nil
 }
+
 func NewProvider() Provider {
     topicProvider := &provider {
         make(chan *spec),
@@ -139,10 +74,59 @@ func NewProvider() Provider {
         map[string]Topic {},
         map[string][]Subscriber {},
         make(chan *eventSpec),
-        make(chan string),
+        make(chan *stateModifierSpec),
     }
     <-runProvider(topicProvider)
     return topicProvider
+}
+
+type provider struct {
+    newSpecs chan *spec
+    newTimeouts chan *timeoutSpec
+    newSubscribers chan *subscriberSpec
+    topics map[string]Topic
+    subscribers map[string][]Subscriber
+    events chan *eventSpec
+    stateModifier chan *stateModifierSpec
+}
+
+func (t *provider) NewTopic(topicName string) Topic {
+    topic := &simpleTopic {
+        t,
+        topicName,
+    }
+    adder := func(state *provider) {
+        state.topics[topicName] = topic
+        state.subscribers[topicName] = []Subscriber {}
+    }
+    t.stateModifier <- &stateModifierSpec { adder }
+    return topic
+}
+
+func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(string, ...interface{})) Topic {
+    topic := &simpleTopic {
+        t,
+        topicName,
+    }
+    adder := func(state *provider) {
+        state.topics[topicName] = topic
+        state.subscribers[topicName] = []Subscriber {}
+    }
+    t.stateModifier <- &stateModifierSpec { adder }
+    return topic
+}
+
+func (t *provider) JoinWithAnd(topicNames []string) Topic {
+
+    return nil
+}
+
+func (t *provider) Close() error {
+    return nil
+}
+
+func (t *provider) String() string {
+    return fmt.Sprintf("Topic-provider {size=%v}", len(t.topics))
 }
 
 func runProvider(p *provider) <-chan bool {
@@ -151,9 +135,8 @@ func runProvider(p *provider) <-chan bool {
         close(releaser)
         for ;; {
             select {
-            case name:= <-p.closeEvents:
-                delete(p.topics, name)
-                delete(p.subscribers, name)
+            case stateChange := <-p.stateModifier:
+                stateChange.modifier(p)
             case newSubscriber:=<-p.newSubscribers:
                 if newSubscriber != nil {
                     p.subscribers[newSubscriber.name] = append(p.subscribers[newSubscriber.name],newSubscriber.subscriber)

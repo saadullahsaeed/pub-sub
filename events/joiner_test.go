@@ -71,8 +71,9 @@ func runFixtureAndOp(filepath string, topicOperation func([]Topic, string) Topic
     topics := map[string]Topic {}
     topicsArray := []Topic {}
     results := make(chan interface{})
+    provider := NewProvider()
     for _, name := range fixture.Topics {
-        topics[name] = NewTopicWithLogging(name, defaultLogging)
+        topics[name] = provider.NewTopicWithLogging(name, defaultLogging)
         topicsArray = append(topicsArray, topics[name])
     }
     topic := topicOperation(topicsArray, "results")

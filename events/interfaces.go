@@ -36,8 +36,13 @@ The benefit of this structure, over typical standalone functions, is that some o
 
 Since 2.0
 */
+
 type Provider interface {
     NewTopic(string) Topic
     NewTopicWithLogging(string, func(string, ...interface{})) Topic
     Close() error
 }
+/**
+This is used with Topics that have state. This function converts 'events' and current topic 'state' into a new topic 'state'.
+*/
+type TopicStateModifierFunction func(event interface{}, oldState interface{}) interface{}
