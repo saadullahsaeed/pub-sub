@@ -97,18 +97,6 @@ func andListen(newStates, currentState chan map[string][]interface{},
     }
 }
 
-func copyAside(original map[string][]interface{}) map[string][]interface{} {
-    mapCopy := map[string][]interface{} {}
-    for key,value := range original {
-        copiedValue := []interface{} {}
-        for _, arrayValue := range value {
-            copiedValue = append(copiedValue, arrayValue)
-        }
-        mapCopy[key] = copiedValue
-    }
-    return mapCopy
-}
-
 type topicWithChannels struct {
     topic Topic
     in chan map[string][]interface{}

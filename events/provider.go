@@ -44,7 +44,6 @@ func (t *simpleTopic) NewPublisher() Publisher {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
         go func() {
-            log.Println(fmt.Sprintf("%v <- %v", t.name, event))
             t.p.events<- &eventSpec { t.name, event }
         }()
     }
@@ -64,6 +63,41 @@ func (t *simpleTopic) Close() error {
     remover := func(state *provider) {
         delete(state.topics, t.name)
         delete(state.subscribers, t.name)
+    }
+    t.p.stateModifier <- &stateModifierSpec { remover }
+    return nil
+}
+
+type tickerTopic struct {
+    p *provider
+    name string
+    ticker *time.Ticker
+    closeChannel chan bool
+}
+
+func (t *tickerTopic) String() string {
+    return fmt.Sprintf("%v", t.name)
+}
+
+func (t *tickerTopic) NewPublisher() Publisher {
+    panic("Tickers can't be published to")
+}
+
+func (t *tickerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
+    releaser := make(chan bool)
+    go func() {
+        t.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
+        close(releaser) //this releases awaiting listeners
+    }()
+    return releaser
+}
+
+func (t *tickerTopic) Close() error {
+    remover := func(state *provider) {
+        delete(state.topics, t.name)
+        delete(state.subscribers, t.name)
+        close(t.closeChannel)
+        t.ticker.Stop()
     }
     t.p.stateModifier <- &stateModifierSpec { remover }
     return nil
@@ -108,6 +142,17 @@ func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(stri
     adder := func(state *provider) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
+    }
+    t.stateModifier <- &stateModifierSpec { adder }
+    return topic
+}
+
+func (t *provider) NewTickerTopic(topicName string, interval time.Duration) Topic {
+    topic := &tickerTopic { t, topicName, time.NewTicker(interval), make(chan bool) }
+    adder := func(state *provider) {
+        state.topics[topicName] = topic
+        state.subscribers[topicName] = []Subscriber {}
+        <-runTicker(topic, t)
     }
     t.stateModifier <- &stateModifierSpec { adder }
     return topic
@@ -159,6 +204,24 @@ func (t *provider) buildGateTopic(topics []Topic, subscriberFactory func(*simple
     return topic
 }
 
+func runTicker(topic *tickerTopic, t *provider) <-chan bool {
+    releaser := make(chan bool)
+    go func() {
+        close(releaser)
+        for ;; {
+            select {
+            case <-topic.closeChannel:
+                return
+            case snapshot := <-topic.ticker.C:
+                go func() {
+                    t.events<- &eventSpec { topic.name, snapshot }
+                }()
+            }
+        }
+    }()
+    return releaser
+}
+
 func (t *provider) OrGate(topics []Topic) Topic {
     return t.buildGateTopic(topics, t.buildOrGateSubscriber)
 }
@@ -197,7 +260,6 @@ func runProvider(p *provider) <-chan bool {
                 } else {
                     go reQueue(event, p.events)
                 }
-
             }
         }
     }()
