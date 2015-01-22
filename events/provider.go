@@ -5,104 +5,6 @@ import (
     "log"
 )
 
-type spec struct {
-    name string
-    loggingMethod func(string, ...interface{})
-}
-
-type timeoutSpec struct {
-    name string
-    timeout time.Duration
-}
-
-type subscriberSpec struct {
-    name string
-    subscriber Subscriber
-}
-
-type eventSpec struct {
-    name string
-    event interface{}
-}
-
-type stateModifierSpec struct {
-    modifier func(snapshot *provider)
-}
-
-type simpleTopic struct {
-    p *provider
-    name string
-    optionalState interface{}
-}
-
-func (t *simpleTopic) String() string {
-    return fmt.Sprintf("%v", t.name)
-}
-
-func (t *simpleTopic) NewPublisher() Publisher {
-    publisher := func(event interface{}) {
-        //it's crucial this is in a go-routine: running 2+ Publishers in the same
-        //go-routine causes a deadlock without this.
-        go func() {
-            t.p.events<- &eventSpec { t.name, event }
-        }()
-    }
-    return publisher
-}
-
-func (t *simpleTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
-    releaser := make(chan bool)
-    go func() {
-        t.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
-        close(releaser) //this releases awaiting listeners
-    }()
-    return releaser
-}
-
-func (t *simpleTopic) Close() error {
-    remover := func(state *provider) {
-        delete(state.topics, t.name)
-        delete(state.subscribers, t.name)
-    }
-    t.p.stateModifier <- &stateModifierSpec { remover }
-    return nil
-}
-
-type tickerTopic struct {
-    p *provider
-    name string
-    ticker *time.Ticker
-    closeChannel chan bool
-}
-
-func (t *tickerTopic) String() string {
-    return fmt.Sprintf("%v", t.name)
-}
-
-func (t *tickerTopic) NewPublisher() Publisher {
-    panic("Tickers can't be published to")
-}
-
-func (t *tickerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
-    releaser := make(chan bool)
-    go func() {
-        t.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
-        close(releaser) //this releases awaiting listeners
-    }()
-    return releaser
-}
-
-func (t *tickerTopic) Close() error {
-    remover := func(state *provider) {
-        delete(state.topics, t.name)
-        delete(state.subscribers, t.name)
-        close(t.closeChannel)
-        t.ticker.Stop()
-    }
-    t.p.stateModifier <- &stateModifierSpec { remover }
-    return nil
-}
-
 func NewProvider() Provider {
     topicProvider := &provider {
         make(chan *spec),
@@ -128,16 +30,6 @@ type provider struct {
 }
 
 func (t *provider) NewTopic(topicName string) Topic {
-    topic := &simpleTopic { t, topicName, nil }
-    adder := func(state *provider) {
-        state.topics[topicName] = topic
-        state.subscribers[topicName] = []Subscriber {}
-    }
-    t.stateModifier <- &stateModifierSpec { adder }
-    return topic
-}
-
-func (t *provider) NewTopicWithLogging(topicName string, loggingMethod func(string, ...interface{})) Topic {
     topic := &simpleTopic { t, topicName, nil }
     adder := func(state *provider) {
         state.topics[topicName] = topic
@@ -202,24 +94,6 @@ func (t *provider) buildGateTopic(topics []Topic, subscriberFactory func(*simple
     topic := <-releaser
     close(releaser)
     return topic
-}
-
-func runTicker(topic *tickerTopic, t *provider) <-chan bool {
-    releaser := make(chan bool)
-    go func() {
-        close(releaser)
-        for ;; {
-            select {
-            case <-topic.closeChannel:
-                return
-            case snapshot := <-topic.ticker.C:
-                go func() {
-                    t.events<- &eventSpec { topic.name, snapshot }
-                }()
-            }
-        }
-    }()
-    return releaser
 }
 
 func (t *provider) OrGate(topics []Topic) Topic {

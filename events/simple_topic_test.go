@@ -66,7 +66,7 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
 }
 
 func Benchmark_Propagation(b *testing.B) {
-    topic := NewTopic("my-awesome-rant")
+    topic := NewProvider().NewTopic("my-awesome-rant")
     subscriber := func(interface{}) {}
     topic.NewSubscriber(subscriber)
     for n:=0; n<b.N;n++ {

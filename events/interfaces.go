@@ -43,7 +43,6 @@ Since 2.0
 
 type Provider interface {
     NewTopic(string) Topic
-    NewTopicWithLogging(string, func(string, ...interface{})) Topic
     NewTickerTopic(string, time.Duration) Topic
     Close() error
     AndGate([]Topic) Topic
