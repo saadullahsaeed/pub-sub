@@ -32,7 +32,7 @@ The AND gate returns a map of all Published events or terminates with an error. 
 Two additional helper methods are provided, preceded with '_Must_': they replicate the base behaviour (of functions without the _Must_), but _panic_ in case of errors. 
 This is useful in code, that if wrong, should terminate the application.
  
-The API exposes 4 interfaces and several functions:
+The API exposes 4 interfaces and a function:
 + _Publisher_ -- which represents the Sender of events, and is a shorthand for _func(interface{})_. Invoking the Publisher (or invoking the function) - is the act of sending of an event. 
 + _Subscriber_ -- which represents the Receiver of events, and is a shorthand for _func(interface{})_. You do not invoke the Subscriber, but it is invoked for you when you are subscribing to a Topic. 
 The event that the Publisher sent is passed as the parameter to the function call. 
@@ -40,21 +40,14 @@ The event that the Publisher sent is passed as the parameter to the function cal
 use this field, and if only - it's for informative reasons. Topics allow you to create Publishers and Subscribers. Bear in mind: since queues are not used, events are _blocked_ when you invoke 
 Publishers, until at least one Subscriber is available. This is to prevent a situation where Publishing occurs before Subscribing.  
 + _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
-+ _And_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. 
++ _NewTickerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
++ _AndGate_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. 
 Hence it is a logical AND gate of multiple Topic subscriptions. Since Publish events might occur repeatedly on one of the provided Topics before data is passed to the returned Topic, 
 the actual type of the returned data is _map[string][]interface{}_, where each key of the map reflects the name of one of the provided Topics.  
-+ _Or_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish. 
++ _OrGate_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish. 
 Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, the returned type is _map[string][]interface{}_. The reason is that a common function/pattern is used behind the scenes, 
 it also promotes a uniform interface.  
-+ _WhenTimeout_ -- is a public function that allows you to construct a side Topic, which publishes messages whenever a base provided Topic is not
-updated with an event in a prescribed amount of time.
-+ _CheckIfPublishOccuredAtLeastOnce_ -- is very similar to _WhenTimeout_ except that it returns true/false, depending whether a Publish did occur in the specified time.
-+ _NewTemporaryTopic_ -- is a public function which allows you to construct a Topic, that is automatically closed after a certain period of time. This functionality is useful if you don't want to worry about the lifecycle of the Topic. The downside is that you can't reuse a closed Topic. 
-+ _NewTimerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
-Any Publish event occuring on the Timer resets the Timer. This Topic implementation is used within _WhenTimeout_
-
-Some of the factories in this library have a _WithLogging_ variant, which allows you to inspect Topic state via a logging method (like log.Println). This
-has a performance impact of course.  
++ _NewProvider_ -- is a public function that allows you to access all of the above methods.
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
 
