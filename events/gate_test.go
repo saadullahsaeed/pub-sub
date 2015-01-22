@@ -13,8 +13,8 @@ import (
 
 func Test_And_WithMultipleTopics(t *testing.T) {
     //given
-    provider := NewProvider()
-    results := runFixtureAndOp(provider, "test1.json", provider.AndGate)
+    factory := NewFactory()
+    results := runFixtureAndOp(factory, "test1.json", factory.AndGate)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello", "how are you?" },
@@ -24,16 +24,16 @@ func Test_And_WithMultipleTopics(t *testing.T) {
 
 func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
     //given
-    provider := NewProvider()
-    results := runFixtureAndOp(NewProvider(), "test2.json", provider.AndGate)
+    factory := NewFactory()
+    results := runFixtureAndOp(NewFactory(), "test2.json", factory.AndGate)
     //then
     expectError(assertions.New(t), <-results)
 }
 
 func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
     //given
-    provider := NewProvider()
-    results := runFixtureAndOp(NewProvider(), "test3.json", provider.AndGate)
+    factory := NewFactory()
+    results := runFixtureAndOp(NewFactory(), "test3.json", factory.AndGate)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello" },
@@ -43,11 +43,11 @@ func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *te
 
 func Test_Close_DoesNot_CrashAnything(t *testing.T) {
     //given
-    provider := NewProvider()
+    factory := NewFactory()
     assert := assertions.New(t)
-    rants := provider.NewTopicWithLogging("rants", defaultLogging)
-    streams := provider.NewTopicWithLogging("streams", defaultLogging)
-    joint := provider.AndGate([]Topic { rants, streams })
+    rants := factory.NewTopic("rants")
+    streams := factory.NewTopic("streams")
+    joint := factory.AndGate([]Topic { rants, streams })
     //then
     assert.DoesNotThrow(func() {
         joint.Close()
@@ -71,13 +71,13 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func runFixtureAndOp(provider Provider, filepath string, topicOperation func([]Topic) Topic) chan interface{} {
+func runFixtureAndOp(factory Factory, filepath string, topicOperation func([]Topic) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}
     results := make(chan interface{})
     for _, name := range fixture.Topics {
-        topics[name] = provider.NewTopicWithLogging(name, defaultLogging)
+        topics[name] = factory.NewTopic(name)
         topicsArray = append(topicsArray, topics[name])
     }
     topic := topicOperation(topicsArray)

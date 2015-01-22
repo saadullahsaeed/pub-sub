@@ -39,17 +39,20 @@ The event that the Publisher sent is passed as the parameter to the function cal
 + _Topic_ -- which represents the typical Pub-Sub _Topic_ parties can subscribe to. Each Topic has a name, which in theory should identify it uniquely among other topics. The implementation does not 
 use this field, and if only - it's for informative reasons. Topics allow you to create Publishers and Subscribers. Bear in mind: since queues are not used, events are _blocked_ when you invoke 
 Publishers, until at least one Subscriber is available. This is to prevent a situation where Publishing occurs before Subscribing.  
++ _NewFactory_ -- is the public access point function that allows you to use this library. 
+
+As such the _NewFactory_ method exposes you a _Factory_ interface providing the following methods:
 + _NewTopic_ -- is a public function that allows you to create a Topic with a name. 
 + _NewTickerTopic_ -- is a public function that allows you to construct a special version of a Topic, which encapsulates over a Go time.NewTicker(). 
 + _AndGate_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until all of them have been notified by a Publish. 
 Hence it is a logical AND gate of multiple Topic subscriptions. Since Publish events might occur repeatedly on one of the provided Topics before data is passed to the returned Topic, 
 the actual type of the returned data is _map[string][]interface{}_, where each key of the map reflects the name of one of the provided Topics.  
 + _OrGate_ -- is a public function that allows you to subscribe to multiple Topics at once, and wait until ANY of them has been notified by a Publish. 
-Hence it is a logical OR gate of multiple Topic subscriptions. Just like And, the returned type is _map[string][]interface{}_. The reason is that a common function/pattern is used behind the scenes, 
-it also promotes a uniform interface.  
-+ _NewProvider_ -- is a public function that allows you to access all of the above methods.
+Hence it is a logical OR gate of multiple Topic subscriptions. Just like with And, the returned type is _map[string][]interface{}_. 
 
 An important assumption of the implementation is that an event is represented by _interface{}_. The framework does not place any assumptions about type. 
+The actual type can actually vary, in some cases it is exactly what a Publish event has produced, in other cases -- see AndGate and OrGate -- it is actually an 
+aggregation of such events.
 
 Note, that the library exposes a Version() method which you can use to inspect this libraries' version.  
 
@@ -62,7 +65,7 @@ import (
     "log"
 )
 
-topic := events.NewTopic("my-new-topic")
+topic := events.NewFactory().NewTopic("my-new-topic")
 publisher := topic.NewPublisher()
 subscriber := func(event interface{}) {
     //prove to me that the Subscriber ran!
@@ -83,8 +86,9 @@ import (
     "log"
 )
 
-firstTopic := events.NewTopic("my-new-topic")
-secondTopic := events.NewTopic("my-latest-topic")
+factory := events.NewFactory()
+firstTopic := factory.NewTopic("my-new-topic")
+secondTopic := factory.NewTopic("my-latest-topic")
 publisher := topic.NewPublisher()
 subscriber := func(event interface{}) {
     //prove to me that something was sent...
@@ -94,7 +98,7 @@ firstTopic.NewSubscriber(subscriber)
 secondTopic.NewSubscriber(subscriber)
 
 publisher("Inform about an event")
-topic := And([]Topic { firstTopic, secondTopic}, "my-latest-rants")
+topic := factory.AndGate([]Topic { firstTopic, secondTopic})
 firstTopic.Close()
 secondTopic.Close()
 ```
@@ -104,4 +108,15 @@ before And fires, all of that data is preserved and provided to you in the callb
 _map[string][]interface{}_.
 Apart from the above comment, usage of OR is identical to the example above. The Or function is actually simpler, since data does not have to be collected. 
 Still, the backing code converts the result into the same kind of structure (_map[string][]interface{}_), so that your event handling code for AND and OR results can be reused. 
+
+## Technical considerations 
+
+The implementation provided by this library has changed between version 1.3 and 2.
+Currently, each _Factory_ which allows you to build, join Topics, is backed by a single go-routine, and a number of channels. A _Factory_ has state: subscribers and topics created by it. Creation or closing of Topics results in a change of state, and hence has an impact on the overall performance of the library. 
+Additionally, the implementations of Topics provided by this _Factory_ make sure that the act of Publishing (via NewPublisher()) or Subscribing (via NewSubscriber()) occurs in separate go-routines. Those go-routines are short-lived and terminate after the event is published or handled. 
+
+## Benchmarks 
+
+In the simplest scenario (one consumer, one producer) on a high-end Macbook (i7, 16GB) the result is 5000 ns per operation. You can run the tests on your own system, via 'make a-benchmark-check' command. 
+These tests also show that reusing a Publisher saves you only several nanoseconds. 
 

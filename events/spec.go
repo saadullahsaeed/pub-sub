@@ -25,5 +25,5 @@ type eventSpec struct {
 }
 
 type stateModifierSpec struct {
-    modifier func(snapshot *provider)
+    modifier func(snapshot *factory)
 }

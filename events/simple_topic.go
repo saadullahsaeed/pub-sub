@@ -1,7 +1,7 @@
 package events
 
 type simpleTopic struct {
-    p *provider
+    p *factory
     name string
     optionalState interface{}
 }
@@ -31,7 +31,7 @@ func (t *simpleTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
 }
 
 func (t *simpleTopic) Close() error {
-    remover := func(state *provider) {
+    remover := func(state *factory) {
         delete(state.topics, t.name)
         delete(state.subscribers, t.name)
     }

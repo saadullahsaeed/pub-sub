@@ -35,13 +35,13 @@ type Topic interface {
 }
 
 /**
+This is the access point to the library. 
 Exposes the top most layer of this library, which allows you to create Topics and Join them. 
-The benefit of this structure, over typical standalone functions, is that some of the go-routine construction can be simplified and unified. 
 
 Since 2.0
 */
 
-type Provider interface {
+type Factory interface {
     NewTopic(string) Topic
     NewTickerTopic(string, time.Duration) Topic
     Close() error

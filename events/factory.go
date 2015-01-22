@@ -2,11 +2,11 @@ package events
 import (
     "time"
     "fmt"
-    "log"
+    // "log"
 )
 
-func NewProvider() Provider {
-    topicProvider := &provider {
+func NewFactory() Factory {
+    topicFactory := &factory {
         make(chan *spec),
         make(chan *timeoutSpec),
         make(chan *subscriberSpec),
@@ -15,11 +15,11 @@ func NewProvider() Provider {
         make(chan *eventSpec),
         make(chan *stateModifierSpec),
     }
-    <-runProvider(topicProvider)
-    return topicProvider
+    <-runFactory(topicFactory)
+    return topicFactory
 }
 
-type provider struct {
+type factory struct {
     newSpecs chan *spec
     newTimeouts chan *timeoutSpec
     newSubscribers chan *subscriberSpec
@@ -29,9 +29,9 @@ type provider struct {
     stateModifier chan *stateModifierSpec
 }
 
-func (t *provider) NewTopic(topicName string) Topic {
+func (t *factory) NewTopic(topicName string) Topic {
     topic := &simpleTopic { t, topicName, nil }
-    adder := func(state *provider) {
+    adder := func(state *factory) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
     }
@@ -39,9 +39,9 @@ func (t *provider) NewTopic(topicName string) Topic {
     return topic
 }
 
-func (t *provider) NewTickerTopic(topicName string, interval time.Duration) Topic {
+func (t *factory) NewTickerTopic(topicName string, interval time.Duration) Topic {
     topic := &tickerTopic { t, topicName, time.NewTicker(interval), make(chan bool) }
-    adder := func(state *provider) {
+    adder := func(state *factory) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
         <-runTicker(topic, t)
@@ -50,9 +50,9 @@ func (t *provider) NewTickerTopic(topicName string, interval time.Duration) Topi
     return topic
 }
 
-func (t *provider) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
+func (t *factory) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
     return func(event interface{}) {
-        stateModifier := func(pt *provider) {
+        stateModifier := func(pt *factory) {
             results := andTopic.optionalState.(map[string][]interface{})
             results[topic.String()] = append(results[topic.String()], event)
             if len(results) == len(topics) {
@@ -66,9 +66,9 @@ func (t *provider) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, to
     }
 }
 
-func (t *provider) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
+func (t *factory) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
     return func(event interface{}) {
-        stateModifier := func(pt *provider) {
+        stateModifier := func(pt *factory) {
             results := orTopic.optionalState.(map[string][]interface{})
             results[topic.String()] = append(results[topic.String()], event)
             orTopic.NewPublisher()(copyAside(results))
@@ -78,9 +78,9 @@ func (t *provider) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topi
     }
 }
 
-func (t *provider) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber) Topic {
+func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber) Topic {
     releaser := make(chan Topic)
-    adder := func(p *provider) {
+    adder := func(p *factory) {
         topicName := fmt.Sprintf("%v", topics)
         newTopic := &simpleTopic { t, topicName, map[string][]interface{} {} }
         p.topics[topicName] = newTopic
@@ -96,23 +96,23 @@ func (t *provider) buildGateTopic(topics []Topic, subscriberFactory func(*simple
     return topic
 }
 
-func (t *provider) OrGate(topics []Topic) Topic {
+func (t *factory) OrGate(topics []Topic) Topic {
     return t.buildGateTopic(topics, t.buildOrGateSubscriber)
 }
 
-func (t *provider) AndGate(topics []Topic) Topic {
+func (t *factory) AndGate(topics []Topic) Topic {
     return t.buildGateTopic(topics, t.buildAndGateSubscriber)
 }
 
-func (t *provider) Close() error {
+func (t *factory) Close() error {
     return nil
 }
 
-func (t *provider) String() string {
-    return fmt.Sprintf("Topic-provider {size=%v}", len(t.topics))
+func (t *factory) String() string {
+    return fmt.Sprintf("Topic-factory {size=%v}", len(t.topics))
 }
 
-func runProvider(p *provider) <-chan bool {
+func runFactory(p *factory) <-chan bool {
     releaser := make(chan bool)
     go func() {
         close(releaser)
@@ -120,7 +120,7 @@ func runProvider(p *provider) <-chan bool {
             select {
             case stateChange := <-p.stateModifier:
                 stateChange.modifier(p)
-                log.Println(fmt.Sprintf("state change: %v", p.topics))
+                // log.Println(fmt.Sprintf("state change: %v", p.topics))
             case newSubscriber:=<-p.newSubscribers:
                 if newSubscriber != nil {
                     p.subscribers[newSubscriber.name] = append(p.subscribers[newSubscriber.name],newSubscriber.subscriber)

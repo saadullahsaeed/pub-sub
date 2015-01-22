@@ -4,7 +4,7 @@ import (
     "time"
 )
 type tickerTopic struct {
-    p *provider
+    p *factory
     name string
     ticker *time.Ticker
     closeChannel chan bool
@@ -28,7 +28,7 @@ func (t *tickerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
 }
 
 func (t *tickerTopic) Close() error {
-    remover := func(state *provider) {
+    remover := func(state *factory) {
         delete(state.topics, t.name)
         delete(state.subscribers, t.name)
         close(t.closeChannel)
@@ -38,7 +38,7 @@ func (t *tickerTopic) Close() error {
     return nil
 }
 
-func runTicker(topic *tickerTopic, t *provider) <-chan bool {
+func runTicker(topic *tickerTopic, t *factory) <-chan bool {
     releaser := make(chan bool)
     go func() {
         close(releaser)
