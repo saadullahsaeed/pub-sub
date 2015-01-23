@@ -6,12 +6,12 @@ EXTERNAL_DEPENDENCIES := $(GIT)/tholowka/testing/assertions
 EXTERNAL_DEPENDENCY_DIRS := $(addprefix $(CURDIR)/, $(EXTERNAL_DEPENDENCIES))
 
 ifeq ($(UNAME), Linux) 
-	GO_BINARIES_NAME_FEDORA := go1.3.3.linux-amd64.tar.gz
+	GO_BINARIES_NAME_FEDORA := go1.4.1.linux-amd64.tar.gz
 	GO_BINARIES_DOWNLOADED := $(WORKDIR)/$(GO_BINARIES_NAME_FEDORA) 
 	GO_DOWNLOAD_BINARY_URL := https://storage.googleapis.com/golang/$(GO_BINARIES_NAME_FEDORA)
 endif
 ifeq ($(UNAME), Darwin)
-	GO_BINARIES_NAME_OSX := go1.3.3.darwin-amd64-osx10.8.tar.gz 
+	GO_BINARIES_NAME_OSX := go1.4.1.darwin-amd64-osx10.8.tar.gz 
 	GO_BINARIES_DOWNLOADED := $(WORKDIR)/$(GO_BINARIES_NAME_OSX) 
 	GO_DOWNLOAD_BINARY_URL := https://storage.googleapis.com/golang/$(GO_BINARIES_NAME_OSX)
 endif 
@@ -63,32 +63,37 @@ clean:
 	@rm -rf $(WORKDIR)
 
 documentation:
-	@export GOPATH=$(WORKDIR) && export GOROOT=$(GODIR) && $(GODOC) $(PACKAGES)
+	@export GOPATH=$(WORKDIR) && export GOROOT=$(GO_DIR) && $(GODOC) $(PACKAGES)
 
 a-quick-build: available
 	@echo 'Running a quick build'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GODIR) && $(GO) build $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) build $(PACKAGES)
 	@export GOPATH=$(WORKDIR) && go build $(PACKAGES)
 	@echo 'Finished a quick build'
 	@echo 'Compilation ended.'
 
 a-quick-test: available 
 	@echo 'Running unit-tests'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GODIR) && $(GO)  test $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO)  test $(PACKAGES)
 	@echo 'Finished unit-tests'
 
 a-single-test: available
 	@echo 'Running unit-tests'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GODIR) && $(GO) test -run TestThat_Timer* $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -run TestThat_Timer* $(PACKAGES)
 	@echo 'Finished unit-tests'
 
 a-benchmark-check: available 
 	@echo 'Running benchmark'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GODIR) && $(GO) test -bench=. $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -bench=. -benchmem $(PACKAGES)
+	@echo 'Finished unit-tests'
+
+a-parallel-benchmark-check: available 
+	@echo 'Running parallel benchmark'
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -bench=Benchmark_Parallel_Topics -benchmem $(PACKAGES)
 	@echo 'Finished unit-tests'
 
 a-build: available
 	@echo 'Running a build (linking)'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GODIR) && $(GO) install $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) install $(PACKAGES)
 	@echo 'Finished a build (linking)'
 	@echo 'Linking ended.'

@@ -88,44 +88,17 @@ func Benchmark_Propagation_When_ReusingAPublisher_OnEachRequest(b *testing.B) {
     //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
 }
 
-func Benchmark_Two_Topics(b *testing.B) {
+func Benchmark_Parallel_Topics(b *testing.B) {
     factory := NewFactory()
-    topic1 := factory.NewTopic("my-awesome-rant")
-    topic2 := factory.NewTopic("my-less-awesome-rant")
-    subscriber1 := func(interface{}) {}
-    subscriber2 := func(interface{}) {}
-    <-topic1.NewSubscriber(subscriber1)
-    <-topic2.NewSubscriber(subscriber2)
-    b.ResetTimer()
-    for n:=0; n<b.N;n++ {
-        topic1.NewPublisher()("Tutu")
-        topic2.NewPublisher()("Desmond")
-    }
-    //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
+    topic := factory.NewTopic("my-awesome-rant")
+    subscriber := func(interface{}) {}
+    <-topic.NewSubscriber(subscriber)
+    b.RunParallel(func(pb *testing.PB) {
+        for pb.Next() {
+            topic.NewPublisher()("Or is Marcus M the best")
+        }
+    })
 }
 
-func Benchmark_Four_Topics(b *testing.B) {
-    factory := NewFactory()
-    topic1 := factory.NewTopic("1")
-    topic2 := factory.NewTopic("2")
-    topic3 := factory.NewTopic("3")
-    topic4 := factory.NewTopic("4")
-    subscriber1 := func(interface{}) {}
-    subscriber2 := func(interface{}) {}
-    subscriber3 := func(interface{}) {}
-    subscriber4 := func(interface{}) {}
-    <-topic1.NewSubscriber(subscriber1)
-    <-topic2.NewSubscriber(subscriber2)
-    <-topic3.NewSubscriber(subscriber3)
-    <-topic4.NewSubscriber(subscriber4)
-    b.ResetTimer()
-    for n:=0; n<b.N;n++ {
-        topic1.NewPublisher()("a")
-        topic2.NewPublisher()("b")
-        topic3.NewPublisher()("c")
-        topic4.NewPublisher()("d")
-    }
-    //note: closing the channel either skews test results or crashes a go-routine due to premature invocation.
-}
 
 
