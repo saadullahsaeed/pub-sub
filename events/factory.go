@@ -141,6 +141,9 @@ func runFactory(p *factory) <-chan bool {
 }
 
 func reQueue(e *eventSpec, ch chan *eventSpec) {
+    //this value has been fined tuned by running some benchmarks.
+    //it seems that with a lower value, the publish/subscribe events are being offset bh the subscriber not being there yet. 
+    <-time.After(time.Duration(5000))
     ch<-e
 }
 
