@@ -6,6 +6,11 @@ import (
 )
 
 func NewFactory() Factory {
+    timeout := 5000
+    //this value has been fined tuned by running some benchmarks.
+    //it is most probably CPU/system dependent. There is a sweet-spot, though. 
+    //on the laptops I use I got the basic benchmarks down to 2000ns/op, but only after raising the value up. 
+    //it is clear though, that with a much bigger value than that above, the benchmark results will reverse and worsen.
     topicFactory := &factory {
         make(chan *spec),
         make(chan *timeoutSpec),
@@ -14,6 +19,7 @@ func NewFactory() Factory {
         map[string][]Subscriber {},
         make(chan *eventSpec),
         make(chan *stateModifierSpec),
+        time.After(time.Duration(timeout)),
     }
     <-runFactory(topicFactory)
     return topicFactory
@@ -27,6 +33,7 @@ type factory struct {
     subscribers map[string][]Subscriber
     events chan *eventSpec
     stateModifier chan *stateModifierSpec
+    internalClock <-chan time.Time
 }
 
 func (t *factory) NewTopic(topicName string) Topic {
@@ -135,7 +142,7 @@ func runFactory(p *factory) <-chan bool {
                         go subscriber(event.event)
                     }
                 } else {
-                    go reQueue(event, p.events)
+                    go p.reQueue(event)
                 }
             }
         }
@@ -143,11 +150,9 @@ func runFactory(p *factory) <-chan bool {
     return releaser
 }
 
-func reQueue(e *eventSpec, ch chan *eventSpec) {
-    //this value has been fined tuned by running some benchmarks.
-    //it seems that with a lower value, the publish/subscribe events are being offset bh the subscriber not being there yet. 
-    <-time.After(time.Duration(5000))
-    ch<-e
+func (t *factory) reQueue(e *eventSpec) {
+    <-t.internalClock
+    t.events<-e
 }
 
 func copyAside(original map[string][]interface{}) map[string][]interface{} {
