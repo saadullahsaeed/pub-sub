@@ -78,10 +78,13 @@ func (t *factory) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topic
     }
 }
 
-func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber) Topic {
+func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber, separator string) Topic {
     releaser := make(chan Topic)
     adder := func(p *factory) {
-        topicName := fmt.Sprintf("%v", topics)
+        topicName := ""
+        for _, topic := range topics {
+            topicName = topicName + separator + topic.String()
+        }
         newTopic := &simpleTopic { t, topicName, map[string][]interface{} {} }
         p.topics[topicName] = newTopic
         p.subscribers[topicName] = []Subscriber {}
@@ -97,11 +100,11 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
 }
 
 func (t *factory) OrGate(topics []Topic) Topic {
-    return t.buildGateTopic(topics, t.buildOrGateSubscriber)
+    return t.buildGateTopic(topics, t.buildOrGateSubscriber, "|")
 }
 
 func (t *factory) AndGate(topics []Topic) Topic {
-    return t.buildGateTopic(topics, t.buildAndGateSubscriber)
+    return t.buildGateTopic(topics, t.buildAndGateSubscriber,"&")
 }
 
 func (t *factory) Close() error {
