@@ -54,7 +54,7 @@ $(WORKDIR_LNK):
 	@ln -s $(CURDIR) $(WORKDIR_LNK)
 
 $(EXTERNAL_DEPENDENCY_DIRS):
-	@export GOPATH=$(WORKDIR) && go get $(EXTERNAL_DEPENDENCIES)
+	@export GOPATH=$(WORKDIR) && export GOROOT=$(GO_DIR) && $(GO) get $(EXTERNAL_DEPENDENCIES)
 
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
