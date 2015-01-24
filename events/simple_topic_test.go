@@ -14,7 +14,7 @@ func TestThat_PubSub_Works(t *testing.T) {
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     //when
     publisher("and I get to talk about jazz")
     //then the subscriber actually got invoked since the channel received some news
@@ -32,7 +32,7 @@ func TestThat_MultiplePublishers_Work(t *testing.T) {
     subscriber := func(event interface{}) {
         channel<-event.(string)
     }
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     //when
     firstPublisher("and I get to talk about jazz")
     secondPublisher("and I get to talk about bebop")
@@ -54,8 +54,8 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
     secondSubscriber := func(event interface{}) {
         channel<-"two"
     }
-    <-topic.NewSubscriber(firstSubscriber)
-    <-topic.NewSubscriber(secondSubscriber)
+    topic.NewSubscriber(firstSubscriber)
+    topic.NewSubscriber(secondSubscriber)
     //when
     publisher("was Charlie better than John")
     //then the subscriber actually got invoked since the channel received some news
@@ -68,7 +68,7 @@ func TestThat_MultipleSubscribers_Work(t *testing.T) {
 func Benchmark_Propagation_When_CreatingPublishers_OnEachRequest(b *testing.B) {
     topic := NewFactory().NewTopic("my-awesome-rant")
     subscriber := func(interface{}) {}
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     b.ResetTimer()
     for n:=0; n<b.N;n++ {
         topic.NewPublisher()("Or is Keith J the best")
@@ -80,7 +80,7 @@ func Benchmark_Propagation_When_ReusingAPublisher_OnEachRequest(b *testing.B) {
     topic := NewFactory().NewTopic("my-awesome-rant")
     subscriber := func(interface{}) {}
     publisher := topic.NewPublisher()
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     b.ResetTimer()
     for n:=0; n<b.N;n++ {
         publisher("Or is Marcus M the best")
@@ -92,7 +92,7 @@ func Benchmark_Parallel_Topics(b *testing.B) {
     factory := NewFactory()
     topic := factory.NewTopic("my-awesome-rant")
     subscriber := func(interface{}) {}
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     b.RunParallel(func(pb *testing.PB) {
         for pb.Next() {
             topic.NewPublisher()("Or is Marcus M the best")

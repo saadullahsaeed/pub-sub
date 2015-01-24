@@ -84,7 +84,7 @@ func runFixtureAndOp(factory Factory, filepath string, topicOperation func([]Top
     subscriber := func(topicMessage interface{}) {
         results <- topicMessage
     }
-    <-topic.NewSubscriber(subscriber)
+    topic.NewSubscriber(subscriber)
     for _, publish := range fixture.Test {
         for name, message := range publish {
             //note: the below technique streamlines execution of Publishers...

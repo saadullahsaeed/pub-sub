@@ -47,6 +47,8 @@ $(GO_DIR):
 # Using a src directory interferes with go get behaviour
 # when the project is used elsewhere.
 # For this to work, GOPATH needs to be modified in the scope of Make.
+.PHONY: available
+.DELETE_ON_ERROR: $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
 available: go-available $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
 $(WORKDIR): 
 	@mkdir -p $(WORKDIR)
@@ -58,6 +60,7 @@ $(EXTERNAL_DEPENDENCY_DIRS):
 
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
+PHONY: clean documentation a-quick-build a-quick-test a-single-test a-benchmark-test a-parallel-benchmark-test a-build
 clean: 
 	@rm -rf $(GIT)
 	@rm -rf $(WORKDIR)

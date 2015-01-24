@@ -12,9 +12,6 @@ func NewFactory() Factory {
     //on the laptops I use I got the basic benchmarks down to 2000ns/op, but only after raising the value up. 
     //it is clear though, that with a much bigger value than that above, the benchmark results will reverse and worsen.
     topicFactory := &factory {
-        make(chan *spec),
-        make(chan *timeoutSpec),
-        make(chan *subscriberSpec),
         map[string]Topic {},
         map[string][]Subscriber {},
         make(chan *eventSpec),
@@ -26,9 +23,6 @@ func NewFactory() Factory {
 }
 
 type factory struct {
-    newSpecs chan *spec
-    newTimeouts chan *timeoutSpec
-    newSubscribers chan *subscriberSpec
     topics map[string]Topic
     subscribers map[string][]Subscriber
     events chan *eventSpec
@@ -38,27 +32,34 @@ type factory struct {
 
 func (t *factory) NewTopic(topicName string) Topic {
     topic := &simpleTopic { t, topicName, nil }
+    stateChanged := make(chan bool)
     adder := func(state *factory) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
     }
-    t.stateModifier <- &stateModifierSpec { adder }
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    <-stateChanged
+    close(stateChanged)
     return topic
 }
 
 func (t *factory) NewTickerTopic(topicName string, interval time.Duration) Topic {
     topic := &tickerTopic { t, topicName, time.NewTicker(interval), make(chan bool) }
+    stateChanged := make(chan bool)
     adder := func(state *factory) {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
         <-runTicker(topic, t)
     }
-    t.stateModifier <- &stateModifierSpec { adder }
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    <-stateChanged
+    close(stateChanged)
     return topic
 }
 
 func (t *factory) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
     return func(event interface{}) {
+        stateChanged := make(chan bool)
         stateModifier := func(pt *factory) {
             results := andTopic.optionalState.(map[string][]interface{})
             results[topic.String()] = append(results[topic.String()], event)
@@ -69,41 +70,48 @@ func (t *factory) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, top
                 andTopic.optionalState = results
             }
         }
-        t.stateModifier <- &stateModifierSpec { stateModifier }
+        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged }
+        <-stateChanged
+        close(stateChanged)
     }
 }
 
 func (t *factory) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topics []Topic) Subscriber {
     return func(event interface{}) {
+        stateChanged := make(chan bool)
         stateModifier := func(pt *factory) {
             results := orTopic.optionalState.(map[string][]interface{})
             results[topic.String()] = append(results[topic.String()], event)
             orTopic.NewPublisher()(copyAside(results))
             orTopic.optionalState = map[string][]interface{} {}
         }
-        t.stateModifier <- &stateModifierSpec { stateModifier }
+        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged }
+        <-stateChanged
+        close(stateChanged)
     }
 }
 
 func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber, separator string) Topic {
-    releaser := make(chan Topic)
+    var (
+        newTopic *simpleTopic
+    )
+    stateChanged := make(chan bool)
     adder := func(p *factory) {
         topicName := ""
         for _, topic := range topics {
             topicName = topicName + separator + topic.String()
         }
-        newTopic := &simpleTopic { t, topicName, map[string][]interface{} {} }
+        newTopic = &simpleTopic { t, topicName, map[string][]interface{} {} }
         p.topics[topicName] = newTopic
         p.subscribers[topicName] = []Subscriber {}
         for _, topic := range topics {
-            topic.NewSubscriber(subscriberFactory(newTopic, topic, topics))
+            go topic.NewSubscriber(subscriberFactory(newTopic, topic, topics))
         }
-        releaser<-newTopic
     }
-    t.stateModifier <- &stateModifierSpec { adder }
-    topic := <-releaser
-    close(releaser)
-    return topic
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    <-stateChanged
+    close(stateChanged)
+    return newTopic
 }
 
 func (t *factory) OrGate(topics []Topic) Topic {
@@ -130,11 +138,7 @@ func runFactory(p *factory) <-chan bool {
             select {
             case stateChange := <-p.stateModifier:
                 stateChange.modifier(p)
-                // log.Println(fmt.Sprintf("state change: %v", p.topics))
-            case newSubscriber:=<-p.newSubscribers:
-                if newSubscriber != nil {
-                    p.subscribers[newSubscriber.name] = append(p.subscribers[newSubscriber.name],newSubscriber.subscriber)
-                }
+                stateChange.stateChanged<-true
             case event:=<-p.events:
                 if subscribers, subscribersExist := p.subscribers[event.name]; subscribersExist {
                     for _, subscriber := range subscribers {

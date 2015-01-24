@@ -18,23 +18,29 @@ func (t *tickerTopic) NewPublisher() Publisher {
     panic("Tickers can't be published to")
 }
 
-func (t *tickerTopic) NewSubscriber(subscriber Subscriber) <-chan bool {
-    releaser := make(chan bool)
-    go func() {
-        t.p.newSubscribers<-&subscriberSpec { t.name, subscriber }
-        close(releaser) //this releases awaiting listeners
-    }()
-    return releaser
+func (t *tickerTopic) NewSubscriber(subscriber Subscriber) {
+    stateChanged := make(chan bool)
+    adder := func(p *factory) {
+        if subscriber != nil {
+            p.subscribers[t.name] = append(p.subscribers[t.name], subscriber)
+        }
+    }
+    t.p.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    <-stateChanged
+    close(stateChanged)
 }
 
 func (t *tickerTopic) Close() error {
+    stateChanged := make(chan bool)
     remover := func(state *factory) {
         delete(state.topics, t.name)
         delete(state.subscribers, t.name)
         close(t.closeChannel)
         t.ticker.Stop()
     }
-    t.p.stateModifier <- &stateModifierSpec { remover }
+    t.p.stateModifier <- &stateModifierSpec { remover, stateChanged }
+    <-stateChanged
+    close(stateChanged)
     return nil
 }
 

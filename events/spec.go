@@ -26,4 +26,5 @@ type eventSpec struct {
 
 type stateModifierSpec struct {
     modifier func(snapshot *factory)
+    stateChanged chan bool
 }

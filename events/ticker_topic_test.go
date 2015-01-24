@@ -12,7 +12,7 @@ func TestThat_TimerTopic_Pings(t *testing.T) {
     assert := assertions.New(t)
 
     timer := NewFactory().NewTickerTopic("ticker", time.Duration(duration)*time.Millisecond)
-    <-timer.NewSubscriber(func(interface{}) {
+    timer.NewSubscriber(func(interface{}) {
          numberOfPings = numberOfPings+1
     })
     <-time.After(time.Duration(10*duration)*time.Millisecond)
