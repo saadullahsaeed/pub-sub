@@ -33,7 +33,7 @@ func Test_And_WithMultipleTopics_And_A_MissingPublish(t *testing.T) {
 func Test_And_WithMultipleTopics_And_That_It_DoesntWait_For_Late_Publishes(t *testing.T) {
     //given
     factory := NewFactory()
-    results := runFixtureAndOp(NewFactory(), "test3.json", factory.AndGate)
+    results := runFixtureAndOp(factory, "test3.json", factory.AndGate)
     //then
     expectResult(assertions.New(t), <-results, map[string][]interface{} {
         "topic1" : []interface{} { "hello" },

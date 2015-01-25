@@ -105,7 +105,9 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
         p.topics[topicName] = newTopic
         p.subscribers[topicName] = []Subscriber {}
         for _, topic := range topics {
-            go topic.NewSubscriber(subscriberFactory(newTopic, topic, topics))
+            //adding subscribers manually as it avoids deadlock (if used with plain 'topic.NewSubscriber()'), or 
+            //introducing hard-to-catch bug (if used with 'go topic.NewSubscriber()')
+            p.subscribers[topic.String()] = append(p.subscribers[topic.String()], subscriberFactory(newTopic, topic, topics))
         }
     }
     t.stateModifier <- &stateModifierSpec { adder, stateChanged }
