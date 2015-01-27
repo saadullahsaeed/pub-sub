@@ -37,7 +37,7 @@ func (t *factory) NewTopic(topicName string) Topic {
         state.topics[topicName] = topic
         state.subscribers[topicName] = []Subscriber {}
     }
-    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged, false }
     <-stateChanged
     close(stateChanged)
     return topic
@@ -51,7 +51,7 @@ func (t *factory) NewTickerTopic(topicName string, interval time.Duration) Topic
         state.subscribers[topicName] = []Subscriber {}
         <-runTicker(topic, t)
     }
-    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged, false }
     <-stateChanged
     close(stateChanged)
     return topic
@@ -70,7 +70,7 @@ func (t *factory) buildAndGateSubscriber(andTopic *simpleTopic, topic Topic, top
                 andTopic.optionalState = results
             }
         }
-        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged }
+        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged, false }
         <-stateChanged
         close(stateChanged)
     }
@@ -85,7 +85,7 @@ func (t *factory) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topic
             orTopic.NewPublisher()(copyAside(results))
             orTopic.optionalState = map[string][]interface{} {}
         }
-        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged }
+        t.stateModifier <- &stateModifierSpec { stateModifier, stateChanged, false }
         <-stateChanged
         close(stateChanged)
     }
@@ -108,7 +108,7 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
             go topic.NewSubscriber(subscriberFactory(newTopic, topic, topics))
         }
     }
-    t.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    t.stateModifier <- &stateModifierSpec { adder, stateChanged, false }
     <-stateChanged
     close(stateChanged)
     return newTopic
@@ -123,6 +123,17 @@ func (t *factory) AndGate(topics []Topic) Topic {
 }
 
 func (t *factory) Close() error {
+    //we close topics manually here, otherwise you may get a deadlock 
+    stateChanged := make(chan bool)
+    closer := func(p *factory) {
+        for _, topic := range t.topics {
+            delete(t.topics, topic.String())
+            delete(t.subscribers, topic.String())
+        }
+    }
+    t.stateModifier <- &stateModifierSpec { closer, stateChanged, true }
+    <-stateChanged
+    close(stateChanged)
     return nil
 }
 
@@ -139,6 +150,9 @@ func runFactory(p *factory) <-chan bool {
             case stateChange := <-p.stateModifier:
                 stateChange.modifier(p)
                 stateChange.stateChanged<-true
+                if stateChange.kill {
+                    break
+                }
             case event:=<-p.events:
                 if subscribers, subscribersExist := p.subscribers[event.name]; subscribersExist {
                     for _, subscriber := range subscribers {
@@ -150,6 +164,8 @@ func runFactory(p *factory) <-chan bool {
                 }
             }
         }
+        close(p.events)
+        close(p.stateModifier)
     }()
     return releaser
 }

@@ -82,7 +82,7 @@ a-quick-test: available
 
 a-single-test: available
 	@echo 'Running unit-tests'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -run TestThat_Timer* $(PACKAGES)
+	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -run TestThat_AfterClosing_TopicsCantBeUsed $(PACKAGES)
 	@echo 'Finished unit-tests'
 
 a-benchmark-check: available 

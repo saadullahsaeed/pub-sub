@@ -28,7 +28,7 @@ func (t *simpleTopic) NewSubscriber(subscriber Subscriber) {
             p.subscribers[t.name] = append(p.subscribers[t.name], subscriber)
         }
     }
-    t.p.stateModifier <- &stateModifierSpec { adder, stateChanged }
+    t.p.stateModifier <- &stateModifierSpec { adder, stateChanged, false }
     <-stateChanged
     close(stateChanged)
 }
@@ -39,7 +39,7 @@ func (t *simpleTopic) Close() error {
         delete(state.topics, t.name)
         delete(state.subscribers, t.name)
     }
-    t.p.stateModifier <- &stateModifierSpec { remover, stateChanged }
+    t.p.stateModifier <- &stateModifierSpec { remover, stateChanged, false }
     <-stateChanged
     close(stateChanged)
     return nil
