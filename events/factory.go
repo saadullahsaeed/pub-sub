@@ -101,7 +101,7 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
 		topicName := ""
 		for _, topic := range topics {
 			if topicName == "" {
-				topicName = topic.String()
+				topicName = "gate of: "+topic.String()
 			} else {
 				topicName = topicName + separator + topic.String()
 			}
