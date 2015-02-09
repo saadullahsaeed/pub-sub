@@ -38,13 +38,16 @@ type Topic interface {
 This is the access point to the library. 
 Exposes the top most layer of this library, which allows you to create Topics and Join them. 
 
+The advantage of using Subscribers in NewTopic/AndGate/OrGate over traditional insertion via Topic.NewSubscriber() is that you don't get into a 
+race condition: the subscribers are registered exactly at the moment the topic is registered.
+
 Since 2.0
 */
 
 type Factory interface {
-    NewTopic(string) Topic
+    NewTopic(string, ...Subscriber) Topic
     NewTickerTopic(string, time.Duration) Topic
     Close() error
-    AndGate([]Topic) Topic
-    OrGate([]Topic) Topic
+    AndGate([]Topic, ...Subscriber) Topic
+    OrGate([]Topic, ...Subscriber) Topic
 }

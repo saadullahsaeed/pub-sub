@@ -5,19 +5,20 @@ import (
 	"time"
 	// "log"
 )
+const (
+	/*
+	Defines the time a go routine waits before re-queueing a given event back into the events queue. 
+	*/
+	internalDelay = 5000
+)
 
 func NewFactory() Factory {
-	timeout := 5000
-	//this value has been fined tuned by running some benchmarks.
-	//it is most probably CPU/system dependent. There is a sweet-spot, though.
-	//on the laptops I use I got the basic benchmarks down to 2000ns/op, but only after raising the value up.
-	//it is clear though, that with a much bigger value than that above, the benchmark results will reverse and worsen.
 	topicFactory := &factory{
 		map[string]Topic{},
 		map[string][]Subscriber{},
 		make(chan *eventSpec),
 		make(chan *stateModifierSpec),
-		time.After(time.Duration(timeout)),
+		time.After(time.Duration(internalDelay)),
 	}
 	<-runFactory(topicFactory)
 	return topicFactory
@@ -31,12 +32,16 @@ type factory struct {
 	internalClock <-chan time.Time
 }
 
-func (t *factory) NewTopic(topicName string) Topic {
+func (t *factory) NewTopic(topicName string, subscribers ...Subscriber) Topic {
 	topic := &simpleTopic{t, topicName, nil}
 	stateChanged := make(chan bool)
 	adder := func(state *factory) {
 		state.topics[topicName] = topic
-		state.subscribers[topicName] = []Subscriber{}
+		if len(subscribers) > 0 {
+			state.subscribers[topicName] = subscribers
+		} else {
+			state.subscribers[topicName] = []Subscriber{}
+		}
 	}
 	t.stateModifier <- &stateModifierSpec{adder, stateChanged, false}
 	<-stateChanged
@@ -92,7 +97,7 @@ func (t *factory) buildOrGateSubscriber(orTopic *simpleTopic, topic Topic, topic
 	}
 }
 
-func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber, separator string) Topic {
+func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleTopic, Topic, []Topic) Subscriber, separator string, subscribers []Subscriber) Topic {
 	var (
 		newTopic *simpleTopic
 	)
@@ -108,7 +113,11 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
 		}
 		newTopic = &simpleTopic{t, topicName, map[string][]interface{}{}}
 		p.topics[topicName] = newTopic
-		p.subscribers[topicName] = []Subscriber{}
+		if len(subscribers) == 0 {
+			p.subscribers[topicName] = []Subscriber{}
+		} else {
+			p.subscribers[topicName] = subscribers
+		}
 		for _, topic := range topics {
 			//adding subscribers manually as it avoids deadlock (if used with plain 'topic.NewSubscriber()'), or
 			//introducing hard-to-catch bug (if used with 'go topic.NewSubscriber()')
@@ -121,12 +130,12 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
 	return newTopic
 }
 
-func (t *factory) OrGate(topics []Topic) Topic {
-	return t.buildGateTopic(topics, t.buildOrGateSubscriber, " | ")
+func (t *factory) OrGate(topics []Topic, subscribers ...Subscriber) Topic {
+	return t.buildGateTopic(topics, t.buildOrGateSubscriber, " | ", subscribers)
 }
 
-func (t *factory) AndGate(topics []Topic) Topic {
-	return t.buildGateTopic(topics, t.buildAndGateSubscriber, " & ")
+func (t *factory) AndGate(topics []Topic, subscribers ...Subscriber) Topic {
+	return t.buildGateTopic(topics, t.buildAndGateSubscriber, " & ", subscribers)
 }
 
 func (t *factory) Close() error {
@@ -178,8 +187,21 @@ func runFactory(p *factory) <-chan bool {
 }
 
 func (t *factory) reQueue(e *eventSpec) {
-	<-t.internalClock
-	t.events <- e
+	delay := e.delay
+	if delay >= 0 {
+		for ;; {
+			if delay < 0 {
+				break
+			}
+			<-t.internalClock
+			delay = delay - internalDelay
+		}
+		newDelay := 2*e.delay
+		if newDelay == 0 {
+			newDelay = internalDelay
+		}
+		t.events <- &eventSpec { e.name, e.event, newDelay }
+	}
 }
 
 func copyAside(original map[string][]interface{}) map[string][]interface{} {

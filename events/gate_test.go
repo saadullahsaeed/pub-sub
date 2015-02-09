@@ -71,7 +71,7 @@ func loadFixture(filepath string) *fixture {
     return testData
 }
 
-func runFixtureAndOp(factory Factory, filepath string, topicOperation func([]Topic) Topic) chan interface{} {
+func runFixtureAndOp(factory Factory, filepath string, topicOperation func([]Topic, ...Subscriber) Topic) chan interface{} {
     fixture := loadFixture(filepath)
     topics := map[string]Topic {}
     topicsArray := []Topic {}

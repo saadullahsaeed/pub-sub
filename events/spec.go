@@ -22,6 +22,7 @@ type subscriberSpec struct {
 type eventSpec struct {
     name string
     event interface{}
+	delay time.Duration //if the value is negative, there is no requeue
 }
 
 type stateModifierSpec struct {

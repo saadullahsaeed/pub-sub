@@ -54,7 +54,7 @@ func runTicker(topic *tickerTopic, t *factory) <-chan bool {
                 return
             case snapshot := <-topic.ticker.C:
                 go func() {
-                    t.events<- &eventSpec { topic.name, snapshot }
+                    t.events<- &eventSpec { topic.name, snapshot, -1 }
                 }()
             }
         }

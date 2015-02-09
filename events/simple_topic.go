@@ -15,7 +15,7 @@ func (t *simpleTopic) NewPublisher() Publisher {
         //it's crucial this is in a go-routine: running 2+ Publishers in the same
         //go-routine causes a deadlock without this.
         go func() {
-            t.p.events<- &eventSpec { t.name, event }
+            t.p.events<- &eventSpec { t.name, event, 0 }
         }()
     }
     return publisher
