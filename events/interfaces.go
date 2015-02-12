@@ -38,7 +38,7 @@ type Topic interface {
 This is the access point to the library. 
 Exposes the top most layer of this library, which allows you to create Topics and Join them. 
 
-The advantage of using Subscribers in NewTopic/AndGate/OrGate over traditional insertion via Topic.NewSubscriber() is that you don't get into a 
+The advantage of using Subscribers in factory methods (e.g. NewTopic/AndGate/OrGate) instead of calling them explicitly after Topic construction (i.e. NewSubscriber()) is that you don't get into a 
 race condition: the subscribers are registered exactly at the moment the topic is registered.
 
 Since 2.0

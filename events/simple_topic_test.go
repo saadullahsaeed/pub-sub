@@ -75,7 +75,6 @@ func TestThat_ClosingTwice_DoesNotHurt(t *testing.T) {
 	assert.DoesNotThrow(func() {
 		topic.Close()
 	})
-
 }
 
 func Benchmark_Propagation_When_CreatingPublishers_OnEachRequest(b *testing.B) {
