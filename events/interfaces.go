@@ -31,22 +31,15 @@ The implementation does not use this name, unless for informative reasons. Topic
 Topics can be closed and this closes the Topic permanently.
 */
 type Topic interface {
-    //Allows you to create a new Publisher for a Topic. If you provide a callback 
-	//(optional) here, it is guaranteed to be invoked during the publishing act. 
-	//Depending on the implementation it may be also used in a defer() section 
-	//or called when the the publish failed. This may happen if Publishing is 
-	//using on a Closed Topic. Publishing may occur in its own go-routine, and 
+    //Allows you to create a new Publisher for a Topic.  
+	//Publishing may occur in its own go-routine, and 
 	//it's not guaranteed that the order you call Publishers is preserved 
 	//(especially if you write to multiple Topics). 
     NewPublisher() Publisher
-    //Allows you to register an arbitrary Subscriber for events in the Topic
+    //Allows you to register an arbitrary Subscriber for events in the Topic.
     //Subscribing may occur in its own go-routine, hence even if the act of 
 	//subscribing 'blocks' (for example due to the waiting on channel), the 
-	//remainders of the Topic still execute normally. You can use the returned 
-	//channel to await for the event, that the underlying Topic has picked up 
-	//the Subscriber. This pattern may be important in applications where a 
-	//Publish/Subscribe order is important, and you want to make sure the Publishing 
-	//occurs after Subscribers have been picked up. 
+	//remaining Topics still execute normally.  
     NewSubscriber(subscriber Subscriber)
     //Returns the topic's name
     String() string
