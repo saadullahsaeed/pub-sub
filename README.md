@@ -3,12 +3,14 @@
 _pub-sub_ is a simple Go library that allows you to:
 + use a Publish-Subscribe mechanism. 
 + allows you to join Subscribers in a Publish-Subscribe pattern together so that a piece of code executes when they have been notified (known also as a Join pattern) 
-+ allows you to construct a simplified DI engine with some clever coding on your part
 
 Go-routines and channels are used in the background, not queues.  
 
 ### Go version 
 This library assumes Go version 1.3.3+. Previous versions of Go have a different way of approaching GOPATH, etc, hence Makefile would have to be done differently. 
+
+### Documentation 
+[![GoDoc](https://godoc.org/github.com/tholowka/pub-sub/events?status.svg)](https://godoc.org/github.com/tholowka/pub-sub/events)
 
 ## Usage ##
 To use the latest 'master' branch version, invoke the following: 
