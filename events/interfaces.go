@@ -47,11 +47,11 @@ type Topic interface {
 	//the Subscriber. This pattern may be important in applications where a 
 	//Publish/Subscribe order is important, and you want to make sure the Publishing 
 	//occurs after Subscribers have been picked up. 
-    NewSubscriber(subscriber Subscriber) 
+    NewSubscriber(subscriber Subscriber)
     //Returns the topic's name
     String() string
     //Close frees the underlying resources, and depending on the implementation 
-	may render the Topic unusable
+	//may render the Topic unusable
     Close() error
 }
 
