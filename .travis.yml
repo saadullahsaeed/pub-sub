@@ -1,3 +1,4 @@
 language: go
-notifications:
-    email: yes
+branches:
+    only:
+        - master
