@@ -121,4 +121,3 @@ Additionally, the implementations of Topics provided by this _Factory_ make sure
 
 In the simplest scenario (one consumer, one producer) on a high-end Macbook (i7, 16GB) the result is 2500-3000 ns per operation. You can run the tests on your own system, via 'make a-benchmark-check' command. 
 These tests also show that reusing a Publisher saves you some hundreds of nanoseconds. 
-
