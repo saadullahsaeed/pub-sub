@@ -18,7 +18,9 @@ endif
 PACKAGES := events 
 BUILD_PATH :=  $(GOPATH):$(WORKDIR)
 
-.PHONY: go-available a-quick-build a-unit-test-check
+.PHONY: go-available a-quick-build a-unit-test-check default
+
+default: a-build a-quick-test
 
 #
 # Go aspects 
