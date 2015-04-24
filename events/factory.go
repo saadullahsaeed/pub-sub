@@ -106,7 +106,7 @@ func (t *factory) buildGateTopic(topics []Topic, subscriberFactory func(*simpleT
 		topicName := ""
 		for _, topic := range topics {
 			if topicName == "" {
-				topicName = "gate of: "+topic.String()
+				topicName = fmt.Sprintf("[%v] gate of: %v", time.Now(), topic.String()
 			} else {
 				topicName = topicName + separator + topic.String()
 			}
