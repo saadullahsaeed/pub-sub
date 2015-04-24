@@ -1,6 +1,18 @@
 package events
 
-/* Returns the version of this library. The versioning method is compliant with Semantic Versioning principles. */
+import (
+	"io/ioutil"
+	"fmt"
+)
+const (
+	buildNumber = ".minor.version"
+)
+
+//Returns the current version of the library
 func Version() string {
-	return "2.1.0"
+	version, err := ioutil.ReadFile(buildNumber)
+	if err != nil {
+		return "no tag present"
+	}
+	return fmt.Sprintf("2.1.%v", string(version))
 }
