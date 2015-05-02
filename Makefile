@@ -53,8 +53,9 @@ $(GO_DIR):
 # Using a src directory interferes with go get behaviour
 # when the project is used elsewhere.
 # For this to work, GOPATH needs to be modified in the scope of Make.
+AVAILABLE := $(WORKDIR)/.available
 .PHONY: available
-.DELETE_ON_ERROR: $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
+.DELETE_ON_ERROR: $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS) $(AVAILABLE)
 
 available: $(AVAILABLE) 
 
