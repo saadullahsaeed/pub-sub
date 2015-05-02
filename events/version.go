@@ -3,6 +3,7 @@ package events
 import (
 	"io/ioutil"
 	"fmt"
+	"strings"
 )
 const (
 	buildNumber = ".minor.version"
@@ -14,5 +15,5 @@ func Version() string {
 	if err != nil {
 		return "no tag present"
 	}
-	return fmt.Sprintf("2.1.%v", string(version))
+	return fmt.Sprintf("2.1.%v-alpha", strings.Trim(string(version), "\n"))
 }
