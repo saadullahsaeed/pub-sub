@@ -32,9 +32,13 @@ GO_UNTARRED_DIR := $(basename $(GO_BINARIES_DOWNLOADED))
 GO_DIR := $(WORKDIR)/go
 GO := $(GO_DIR)/bin/go
 GODOC := $(GO_DIR)/bin/godoc
+GO_AVAILABLE:= $(WORKDIR)/.go-available
 
-go-available: $(WORKDIR) $(GO_BINARIES_DOWNLOADED) $(GO_DIR) 
+go-available: $(GO_AVAILABLE)
+
+$(GO_AVAILABLE): $(WORKDIR) $(GO_BINARIES_DOWNLOADED) $(GO_DIR) 
 	@echo 'Go downloaded and available'
+	@touch $@
 
 $(GO_BINARIES_DOWNLOADED): 
 	$(shell $(GO_WGET_CMD))
@@ -51,7 +55,12 @@ $(GO_DIR):
 # For this to work, GOPATH needs to be modified in the scope of Make.
 .PHONY: available
 .DELETE_ON_ERROR: $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
-available: go-available $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
+
+available: $(AVAILABLE) 
+
+$(AVAILABLE): $(GO_AVAILABLE) $(WORKDIR) $(WORKDIR_LNK) $(EXTERNAL_DEPENDENCY_DIRS)
+	@touch $@
+
 $(WORKDIR): 
 	@mkdir -p $(WORKDIR)
 $(WORKDIR_LNK):
@@ -62,6 +71,8 @@ $(EXTERNAL_DEPENDENCY_DIRS):
 
 ######## BUILD, UNIT-TEST, LINKING ##########
 #############################################
+BUILD_DONE := $(WORKDIR)/.build
+TEST_DONE := $(WORKDIR)/.test
 PHONY: clean documentation a-quick-build a-quick-test a-single-test a-benchmark-test a-parallel-benchmark-test a-build
 clean: 
 	@rm -rf $(GIT)
@@ -70,39 +81,36 @@ clean:
 documentation:
 	@export GOPATH=$(WORKDIR) && export GOROOT=$(GO_DIR) && $(GODOC) $(PACKAGES)
 
-a-quick-build: available
-	@echo 'Running a quick build'
-	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) build $(PACKAGES)
-	@export GOPATH=$(WORKDIR) && go build $(PACKAGES)
-	@echo 'Finished a quick build'
-	@echo 'Compilation ended.'
-
-a-quick-test: available 
+a-quick-test: $(TEST_DONE) 
+$(TEST_DONE): $(AVAILABLE)
 	@echo 'Running unit-tests'
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO)  test $(PACKAGES)
 	@echo 'Finished unit-tests'
+	@touch $@
 
-a-single-test: available
+a-single-test: $(AVAILABLE) 
 	@echo 'Running unit-tests'
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -run TestThat_AfterClosing_TopicsCantBeUsed $(PACKAGES)
 	@echo 'Finished unit-tests'
 
-a-benchmark-check: available 
+a-benchmark-check: $(AVAILABLE) 
 	@echo 'Running benchmark'
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -bench=. -benchmem $(PACKAGES)
 	@echo 'Finished unit-tests'
 
-a-parallel-benchmark-check: available 
+a-parallel-benchmark-check: $(AVAILABLE) 
 	@echo 'Running parallel benchmark'
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) test -bench=Benchmark_Parallel_Topics -benchmem $(PACKAGES)
 	@echo 'Finished unit-tests'
 
-a-build: available
+a-build: $(BUILD_DONE)
+$(BUILD_DONE): $(AVAILABLE)
 	@echo 'Running a build (linking)'
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) install $(PACKAGES)
 	@echo 'Finished a build (linking)'
 	@echo 'Linking ended.'
 	@make a-tag
+	@touch $@
 
 PHONY: a-tag
 BUILD_NUMBER := $(CURDIR)/.minor.version
