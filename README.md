@@ -2,7 +2,7 @@
 
 _pub-sub_ is a simple Go library that allows you to:
 + use a Publish-Subscribe mechanism. 
-+ allows you to join Subscribers in a Publish-Subscribe pattern together so that a piece of code executes when they have been notified (known also as a Join pattern) 
++ allows you to create Gates, like AND/OR to join Subscribers in a Publish-Subscribe pattern together  
 
 Go-routines and channels are used in the background, not queues.  
 
