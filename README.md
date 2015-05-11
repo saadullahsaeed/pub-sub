@@ -6,8 +6,6 @@ _pub-sub_ is a simple Go library that allows you to:
 
 Go-routines and channels are used in the background, not queues.  
 
-[![views](https://sourcegraph.com/api/repos/github.com/tholowka/pub-sub/.counters/views.svg)](https://sourcegraph.com/github.com/tholowka/pub-sub)
-
 ### Build status  
 
 [![Build status](https://travis-ci.org/tholowka/pub-sub.svg?branch=master)](https://travis-ci.org/tholowka/pub-sub.svg?branch=master)
