@@ -110,15 +110,6 @@ $(BUILD_DONE): $(AVAILABLE)
 	@export GOPATH=$(BUILD_PATH) && export GOROOT=$(GO_DIR) && $(GO) install $(PACKAGES)
 	@echo 'Finished a build (linking)'
 	@echo 'Linking ended.'
-	@make a-tag
 	@touch $@
-
-PHONY: a-tag
-BUILD_NUMBER := $(CURDIR)/.minor.version
-a-tag: 
-	@if ! test -f $(BUILD_NUMBER);\
-		then echo 0 > $(BUILD_NUMBER);\
-	fi
-	@echo $$(($$(cat $(BUILD_NUMBER)) + 1)) > $(BUILD_NUMBER)
 
 
